@@ -120,7 +120,8 @@ export default function RegisterForm({
     try {
       const { error } = await authClient.signIn.social({
         provider: "google",
-        callbackURL: redirectTo,
+        callbackURL: `${window.location.origin}/`,
+        errorCallbackURL: `${window.location.origin}/login`,
       });
       if (error) {
         const message = error.message ?? "Unable to continue with Google.";
@@ -327,8 +328,8 @@ export default function RegisterForm({
         disabled={isSubmitting}
         className="flex h-12.5 w-full items-center justify-center gap-2.5 rounded-[14px] border border-[#D8E2DD] bg-white text-[12px] font-bold text-[#203C32] shadow-sm transition-colors hover:border-[#B7CEC4] hover:bg-[#FBFCFA] sm:h-13 sm:text-[13px]"
       >
-        
-          <FcGoogle size={20} />
+
+        <FcGoogle size={20} />
         {isSubmitting ? "Please wait..." : "Continue with Google"}
       </motion.button>
 

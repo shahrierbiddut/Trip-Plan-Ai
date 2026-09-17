@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import {
   AreaChart,
   Area,
@@ -120,7 +120,7 @@ const pieColors = [
    ANIMATION
 ========================= */
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: {},
   show: {
     transition: {
@@ -129,7 +129,7 @@ const containerVariants = {
   },
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: {
     opacity: 0,
     y: 20,
@@ -155,7 +155,7 @@ export default function AnalyticsPage() {
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const res = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/+$/, "")}/api/stats/analytics`);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/stats/analytics`);
         const data = await res.json();
         if (data.success) {
           setMonthlyData(data.data);
@@ -1050,7 +1050,12 @@ function AnalyticsStat({
   value,
   percentage,
   icon,
-}) {
+}:  {
+  title: string;
+  value: string | number;
+  percentage: string;
+  icon: React.ReactNode;
+})  {
   return (
     <motion.div
       variants={itemVariants}
@@ -1150,6 +1155,11 @@ function OverviewItem({
   title,
   value,
   text,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  value: string;
+  text: string;
 }) {
   return (
     <motion.div

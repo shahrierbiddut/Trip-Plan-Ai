@@ -19,6 +19,12 @@ export default function StatCard({
   change,
   icon,
   description,
+}: {
+  title: string;
+  value: string | number;
+  change: string;
+  icon: keyof typeof iconMap;
+  description: string;
 }) {
   const Icon = iconMap[icon];
 

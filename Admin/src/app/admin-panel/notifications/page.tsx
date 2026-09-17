@@ -13,10 +13,47 @@ import {
   ShieldAlert,
   MessageSquare,
   Clock,
-  X,
 } from "lucide-react";
 
-const initialNotifications = [
+type NotificationType =
+  | "review"
+  | "user"
+  | "destination"
+  | "moderation"
+  | "message";
+
+interface Notification {
+  id: number;
+  type: NotificationType;
+  title: string;
+  message: string;
+  time: string;
+  unread: boolean;
+}
+
+interface NotificationItemProps {
+  notification: Notification;
+  onRead: (id: number) => void;
+  onDelete: (id: number) => void;
+}
+
+interface SummaryCardProps {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+}
+
+interface EmptyStateProps {
+  filter: "all" | "unread";
+}
+
+interface IconData {
+  icon: React.ReactNode;
+  bg: string;
+  text: string;
+}
+
+const initialNotifications: Notification[] = [
   {
     id: 1,
     type: "review",
@@ -93,9 +130,9 @@ const initialNotifications = [
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] =
-    useState(initialNotifications);
+    useState<Notification[]>(initialNotifications);
 
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState<"all" | "unread">("all");
 
   const unreadCount = notifications.filter(
     (notification) => notification.unread
@@ -108,7 +145,7 @@ export default function NotificationsPage() {
         )
       : notifications;
 
-  const markAsRead = (id) => {
+  const markAsRead = (id: number) => {
     setNotifications((prev) =>
       prev.map((notification) =>
         notification.id === id
@@ -127,7 +164,7 @@ export default function NotificationsPage() {
     );
   };
 
-  const deleteNotification = (id) => {
+  const deleteNotification = (id: number) => {
     setNotifications((prev) =>
       prev.filter((notification) => notification.id !== id)
     );
@@ -238,18 +275,20 @@ export default function NotificationsPage() {
 
         {/* TOP BAR */}
 
-        <div className="
-          flex
-          flex-col
-          gap-4
-          border-b
-          border-gray-100
-          p-4
-          sm:flex-row
-          sm:items-center
-          sm:justify-between
-          sm:p-5
-        ">
+        <div
+          className="
+            flex
+            flex-col
+            gap-4
+            border-b
+            border-gray-100
+            p-4
+            sm:flex-row
+            sm:items-center
+            sm:justify-between
+            sm:p-5
+          "
+        >
 
           <div className="flex items-center gap-2">
 
@@ -293,6 +332,7 @@ export default function NotificationsPage() {
               `}
             >
               Unread
+
               {unreadCount > 0 && (
                 <span className="ml-1.5">
                   ({unreadCount})
@@ -354,7 +394,6 @@ export default function NotificationsPage() {
   );
 }
 
-
 /* =========================
    NOTIFICATION ITEM
 ========================= */
@@ -363,7 +402,7 @@ function NotificationItem({
   notification,
   onRead,
   onDelete,
-}) {
+}: NotificationItemProps) {
   const iconData = getNotificationIcon(notification.type);
 
   return (
@@ -499,11 +538,9 @@ function NotificationItem({
         </div>
 
       </div>
-
     </motion.div>
   );
 }
-
 
 /* =========================
    SUMMARY CARD
@@ -513,7 +550,7 @@ function SummaryCard({
   icon,
   label,
   value,
-}) {
+}: SummaryCardProps) {
   return (
     <motion.div
       whileHover={{ y: -3 }}
@@ -528,6 +565,7 @@ function SummaryCard({
         hover:shadow-md
       "
     >
+
       <div className="flex items-center gap-3">
 
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 text-green-600">
@@ -545,16 +583,18 @@ function SummaryCard({
         </div>
 
       </div>
+
     </motion.div>
   );
 }
-
 
 /* =========================
    EMPTY STATE
 ========================= */
 
-function EmptyState({ filter }) {
+function EmptyState({
+  filter,
+}: EmptyStateProps) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -582,12 +622,13 @@ function EmptyState({ filter }) {
   );
 }
 
-
 /* =========================
    ICON HANDLER
 ========================= */
 
-function getNotificationIcon(type) {
+function getNotificationIcon(
+  type: NotificationType
+): IconData {
   switch (type) {
     case "review":
       return {
