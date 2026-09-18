@@ -140,7 +140,7 @@ export default function AdminStoriesPage() {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-6 max-w-6xl mx-auto mt-[95px]">
       <h1 className="text-2xl font-bold mb-6">
         Manage User Stories
       </h1>
