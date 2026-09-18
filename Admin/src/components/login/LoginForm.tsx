@@ -96,7 +96,8 @@ export default function LoginForm({
     try {
       const { error } = await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/",
+        callbackURL: `${window.location.origin}/`,
+        errorCallbackURL: `${window.location.origin}/login`,
       });
       if (error) {
         const message = error.message ?? "Unable to continue with Google.";

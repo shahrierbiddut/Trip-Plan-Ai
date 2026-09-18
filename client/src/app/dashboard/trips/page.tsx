@@ -251,7 +251,7 @@ export default function TripsPage() {
             </p>
             <Link
               href="/plan-trip"
-              className="bg-primary text-white px-8 py-3.5 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5"
+              className="bg-gradient-to-r from-[#F4A934] to-[#F19305] text-[#14151a] px-8 py-3.5 rounded-xl font-bold hover:shadow-[0_4px_14px_rgba(244,169,52,0.4)] transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2"
             >
               Start Planning Now
             </Link>

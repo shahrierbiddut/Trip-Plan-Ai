@@ -42,7 +42,7 @@ export function showTripPlanToast({
   icon = <Plane size={19} strokeWidth={2.1} />,
   duration = 4000,
 }: TripPlanToastOptions) {
-  return toast.custom(
+  const toastId = toast.custom(
     (currentToast) => (
       <motion.div
         initial={{ opacity: 0, y: -12, scale: 0.97 }}
@@ -96,12 +96,20 @@ export function showTripPlanToast({
       position: "top-right",
     },
   );
+
+  // Failsafe to dismiss toast if router.refresh() freezes it
+  setTimeout(() => {
+    toast.dismiss(toastId);
+  }, duration);
+
+  return toastId;
 }
 
 export function showLogoutToast(userName: string) {
   return showTripPlanToast({
     title: `Goodbye, ${userName}`,
     message: "You have been logged out successfully.",
+    duration: 3000,
   });
 }
 
