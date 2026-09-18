@@ -38,7 +38,7 @@ export default function AdminBookingsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50/50 p-6 lg:p-8">
+    <div className="min-h-screen bg-gray-50/50 p-6 lg:p-8 mt-[95px]">
       {/* Header Section */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

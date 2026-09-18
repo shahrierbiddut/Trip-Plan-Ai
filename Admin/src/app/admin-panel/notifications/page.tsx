@@ -1,7 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import { motion, AnimatePresence } from "framer-motion";
+
 import {
   Bell,
   Check,
@@ -13,28 +20,55 @@ import {
   ShieldAlert,
   MessageSquare,
   Clock,
+  RefreshCw,
+  AlertCircle,
 } from "lucide-react";
+
+import { useSession } from "@/lib/auth-client";
+
+// ======================================================
+// TYPES
+// ======================================================
 
 type NotificationType =
   | "review"
   | "user"
   | "destination"
   | "moderation"
-  | "message";
+  | "message"
+  | "success"
+  | "warning"
+  | "error"
+  | "info"
+  | string;
+
+interface ApiNotification {
+  _id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  isRead: boolean;
+  createdAt: string;
+  link?: string;
+}
 
 interface Notification {
-  id: number;
+  id: string;
   type: NotificationType;
   title: string;
   message: string;
   time: string;
   unread: boolean;
+  createdAt: string;
+  link?: string;
 }
 
 interface NotificationItemProps {
   notification: Notification;
-  onRead: (id: number) => void;
-  onDelete: (id: number) => void;
+  onRead: (id: string) => void;
+  onDelete: (id: string) => void;
+  actionLoading?: string | null;
 }
 
 interface SummaryCardProps {
@@ -53,131 +87,603 @@ interface IconData {
   text: string;
 }
 
-const initialNotifications: Notification[] = [
-  {
-    id: 1,
-    type: "review",
-    title: "New Review Submitted",
-    message:
-      "A new review has been submitted for Ratargul Swamp Forest.",
-    time: "10 minutes ago",
-    unread: true,
-  },
-  {
-    id: 2,
-    type: "user",
-    title: "New User Registered",
-    message:
-      "A new user has created an account on Trip Plan AI.",
-    time: "35 minutes ago",
-    unread: true,
-  },
-  {
-    id: 3,
-    type: "destination",
-    title: "New Destination Added",
-    message:
-      "Sajek Valley has been added to the destination list.",
-    time: "2 hours ago",
-    unread: true,
-  },
-  {
-    id: 4,
-    type: "moderation",
-    title: "Content Needs Review",
-    message:
-      "A reported destination description is waiting for moderation.",
-    time: "4 hours ago",
-    unread: true,
-  },
-  {
-    id: 5,
-    type: "message",
-    title: "New User Message",
-    message:
-      "A user has sent a new message regarding their travel plan.",
-    time: "Yesterday",
-    unread: true,
-  },
-  {
-    id: 6,
-    type: "review",
-    title: "Review Approved",
-    message:
-      "Your team approved a review for Jaflong, Sylhet.",
-    time: "Yesterday",
-    unread: false,
-  },
-  {
-    id: 7,
-    type: "user",
-    title: "User Account Updated",
-    message:
-      "An administrator updated a user's account information.",
-    time: "2 days ago",
-    unread: false,
-  },
-  {
-    id: 8,
-    type: "destination",
-    title: "Destination Updated",
-    message:
-      "Destination information for Cox's Bazar was updated.",
-    time: "3 days ago",
-    unread: false,
-  },
-];
+// ======================================================
+// API URL
+// ======================================================
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "") || "";
+
+// ======================================================
+// TIME FORMATTER
+// ======================================================
+
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Unknown time";
+  }
+
+  const now = new Date();
+
+  const difference = Math.max(
+    0,
+    now.getTime() - date.getTime()
+  );
+
+  const seconds = Math.floor(difference / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (seconds < 60) {
+    return "Just now";
+  }
+
+  if (minutes < 60) {
+    return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  }
+
+  if (hours < 24) {
+    return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  }
+
+  if (days === 1) {
+    return "Yesterday";
+  }
+
+  if (days < 7) {
+    return `${days} days ago`;
+  }
+
+  return date.toLocaleDateString();
+}
+
+// ======================================================
+// MAP API DATA → UI DATA
+// ======================================================
+
+function mapNotification(
+  notification: ApiNotification
+): Notification {
+  return {
+    id: String(notification._id),
+    type: notification.type,
+    title: notification.title,
+    message: notification.message,
+    time: formatRelativeTime(notification.createdAt),
+    unread: !notification.isRead,
+    createdAt: notification.createdAt,
+    link: notification.link,
+  };
+}
+
+// ======================================================
+// MAIN PAGE
+// ======================================================
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] =
-    useState<Notification[]>(initialNotifications);
+  // ====================================================
+  // BETTER AUTH SESSION
+  // ====================================================
 
-  const [filter, setFilter] = useState<"all" | "unread">("all");
+  const {
+    data: session,
+    isPending: sessionLoading,
+  } = useSession();
 
-  const unreadCount = notifications.filter(
-    (notification) => notification.unread
-  ).length;
+  const userId = session?.user?.id;
 
-  const filteredNotifications =
-    filter === "unread"
-      ? notifications.filter(
-          (notification) => notification.unread
+  // ====================================================
+  // STATE
+  // ====================================================
+
+  const [notifications, setNotifications] = useState<
+    Notification[]
+  >([]);
+
+  const [filter, setFilter] =
+    useState<"all" | "unread">("all");
+
+  const [loading, setLoading] = useState(true);
+
+  const [refreshing, setRefreshing] =
+    useState(false);
+
+  const [error, setError] = useState<string | null>(
+    null
+  );
+
+  const [actionLoading, setActionLoading] =
+    useState<string | null>(null);
+
+  // ====================================================
+  // FETCH NOTIFICATIONS
+  // ====================================================
+
+  const fetchNotifications = useCallback(
+    async (showLoader = true) => {
+      if (!userId) {
+        return;
+      }
+
+      if (!API_URL) {
+        setError(
+          "API URL is not configured. Please check NEXT_PUBLIC_API_URL."
+        );
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      try {
+        if (showLoader) {
+          setRefreshing(true);
+        }
+
+        setError(null);
+
+        const response = await fetch(
+          `${API_URL}/api/notifications/${userId}`,
+          {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch notifications (${response.status})`
+          );
+        }
+
+        const result = await response.json();
+
+        if (
+          !result?.success ||
+          !Array.isArray(result?.data)
+        ) {
+          throw new Error(
+            "Invalid notifications API response"
+          );
+        }
+
+        const mappedNotifications =
+          result.data.map(
+            (notification: ApiNotification) =>
+              mapNotification(notification)
+          );
+
+        setNotifications(mappedNotifications);
+      } catch (err) {
+        console.error(
+          "Failed to fetch notifications:",
+          err
+        );
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load notifications."
+        );
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [userId]
+  );
+
+  // ====================================================
+  // INITIAL FETCH
+  // ====================================================
+
+  useEffect(() => {
+    // Wait until Better Auth finishes checking session
+    if (sessionLoading) {
+      return;
+    }
+
+    // Session finished but no user
+    if (!userId) {
+      setLoading(false);
+      setError("User session not found.");
+      return;
+    }
+
+    fetchNotifications(true);
+  }, [
+    userId,
+    sessionLoading,
+    fetchNotifications,
+  ]);
+
+  // ====================================================
+  // REFRESH WHEN PAGE GETS FOCUS
+  // ====================================================
+
+  useEffect(() => {
+    const handleFocus = () => {
+      if (userId) {
+        fetchNotifications(false);
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.removeEventListener(
+        "focus",
+        handleFocus
+      );
+    };
+  }, [userId, fetchNotifications]);
+
+  // ====================================================
+  // REFRESH WHEN HEADER UPDATES NOTIFICATIONS
+  // ====================================================
+
+  useEffect(() => {
+    const handleNotificationUpdate = () => {
+      if (userId) {
+        fetchNotifications(false);
+      }
+    };
+
+    window.addEventListener(
+      "notifications:updated",
+      handleNotificationUpdate
+    );
+
+    return () => {
+      window.removeEventListener(
+        "notifications:updated",
+        handleNotificationUpdate
+      );
+    };
+  }, [userId, fetchNotifications]);
+
+  // ====================================================
+  // UNREAD COUNT
+  // ====================================================
+
+  const unreadCount = useMemo(() => {
+    return notifications.filter(
+      (notification) => notification.unread
+    ).length;
+  }, [notifications]);
+
+  // ====================================================
+  // FILTER
+  // ====================================================
+
+  const filteredNotifications = useMemo(() => {
+    if (filter === "unread") {
+      return notifications.filter(
+        (notification) => notification.unread
+      );
+    }
+
+    return notifications;
+  }, [notifications, filter]);
+
+  // ====================================================
+  // MARK ONE AS READ
+  // ====================================================
+
+  const markAsRead = async (id: string) => {
+    try {
+      setActionLoading(id);
+      setError(null);
+
+      const response = await fetch(
+        `${API_URL}/api/notifications/${id}/read`,
+        {
+          method: "PATCH",
+          credentials: "include",
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(
+          result?.message ||
+            "Failed to mark notification as read."
+        );
+      }
+
+      // Update UI immediately
+      setNotifications((previous) =>
+        previous.map((notification) =>
+          notification.id === id
+            ? {
+                ...notification,
+                unread: false,
+              }
+            : notification
         )
-      : notifications;
+      );
 
-  const markAsRead = (id: number) => {
-    setNotifications((prev) =>
-      prev.map((notification) =>
-        notification.id === id
-          ? { ...notification, unread: false }
-          : notification
-      )
+      // Update header badge
+      window.dispatchEvent(
+        new CustomEvent("notifications:updated")
+      );
+    } catch (err) {
+      console.error(
+        "Failed to mark notification as read:",
+        err
+      );
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to mark notification as read."
+      );
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // ====================================================
+  // MARK ALL AS READ
+  // ====================================================
+
+  const markAllAsRead = async () => {
+    if (!userId || unreadCount === 0) {
+      return;
+    }
+
+    try {
+      setActionLoading("all");
+      setError(null);
+
+      const response = await fetch(
+        `${API_URL}/api/notifications/user/${userId}/read-all`,
+        {
+          method: "PATCH",
+          credentials: "include",
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(
+          result?.message ||
+            "Failed to mark all notifications as read."
+        );
+      }
+
+      // Update UI immediately
+      setNotifications((previous) =>
+        previous.map((notification) => ({
+          ...notification,
+          unread: false,
+        }))
+      );
+
+      // Update header badge
+      window.dispatchEvent(
+        new CustomEvent("notifications:updated")
+      );
+    } catch (err) {
+      console.error(
+        "Failed to mark all notifications as read:",
+        err
+      );
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to mark all notifications as read."
+      );
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // ====================================================
+  // DELETE ONE
+  // ====================================================
+
+  const deleteNotification = async (
+    id: string
+  ) => {
+    try {
+      setActionLoading(`delete-${id}`);
+      setError(null);
+
+      const response = await fetch(
+        `${API_URL}/api/notifications/${id}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(
+          result?.message ||
+            "Failed to delete notification."
+        );
+      }
+
+      // Remove from UI
+      setNotifications((previous) =>
+        previous.filter(
+          (notification) =>
+            notification.id !== id
+        )
+      );
+
+      // Update header badge
+      window.dispatchEvent(
+        new CustomEvent("notifications:updated")
+      );
+    } catch (err) {
+      console.error(
+        "Failed to delete notification:",
+        err
+      );
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to delete notification."
+      );
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // ====================================================
+  // CLEAR ALL
+  // ====================================================
+
+  const clearAll = async () => {
+    if (!userId || notifications.length === 0) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Are you sure you want to delete all notifications?"
     );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setActionLoading("clear-all");
+      setError(null);
+
+      const response = await fetch(
+        `${API_URL}/api/notifications/user/${userId}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(
+          result?.message ||
+            "Failed to clear notifications."
+        );
+      }
+
+      setNotifications([]);
+
+      // Update header badge
+      window.dispatchEvent(
+        new CustomEvent("notifications:updated")
+      );
+    } catch (err) {
+      console.error(
+        "Failed to clear notifications:",
+        err
+      );
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to clear notifications."
+      );
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications((prev) =>
-      prev.map((notification) => ({
-        ...notification,
-        unread: false,
-      }))
+  // ====================================================
+  // SESSION LOADING
+  // ====================================================
+
+  if (sessionLoading) {
+    return (
+      <div className="mt-[95px] w-full min-w-0 overflow-x-hidden p-4 sm:p-6 lg:p-8">
+        <div className="flex min-h-[400px] items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <RefreshCw
+              size={28}
+              className="animate-spin text-green-600"
+            />
+
+            <p className="text-sm text-gray-500">
+              Checking session...
+            </p>
+          </div>
+        </div>
+      </div>
     );
-  };
+  }
 
-  const deleteNotification = (id: number) => {
-    setNotifications((prev) =>
-      prev.filter((notification) => notification.id !== id)
+  // ====================================================
+  // LOADING STATE
+  // ====================================================
+
+  if (loading) {
+    return (
+      <div className="mt-[95px] w-full min-w-0 overflow-x-hidden p-4 sm:p-6 lg:p-8">
+        <div className="flex min-h-[400px] items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <RefreshCw
+              size={28}
+              className="animate-spin text-green-600"
+            />
+
+            <p className="text-sm text-gray-500">
+              Loading notifications...
+            </p>
+          </div>
+        </div>
+      </div>
     );
-  };
+  }
 
-  const clearAll = () => {
-    setNotifications([]);
-  };
+  // ====================================================
+  // NO USER
+  // ====================================================
+
+  if (!userId) {
+    return (
+      <div className="mt-[95px] w-full min-w-0 overflow-x-hidden p-4 sm:p-6 lg:p-8">
+        <div className="flex min-h-[400px] items-center justify-center">
+          <div className="rounded-2xl border border-red-100 bg-red-50 p-6 text-center">
+            <AlertCircle
+              size={32}
+              className="mx-auto text-red-500"
+            />
+
+            <h3 className="mt-3 font-bold text-gray-800">
+              User session not found
+            </h3>
+
+            <p className="mt-1 text-sm text-gray-500">
+              Please log in again to view notifications.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ====================================================
+  // PAGE
+  // ====================================================
 
   return (
-    <div className="w-full min-w-0 overflow-x-hidden p-4 sm:p-6 lg:p-8">
+    <div className="mt-[95px] w-full min-w-0 overflow-x-hidden p-4 sm:p-6 lg:p-8">
 
-      {/* ================= HEADER ================= */}
+      {/* ================================================
+          HEADER
+      ================================================= */}
 
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -194,7 +700,9 @@ export default function NotificationsPage() {
 
               {unreadCount > 0 && (
                 <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-400 px-1 text-[10px] font-bold text-white">
-                  {unreadCount}
+                  {unreadCount > 99
+                    ? "99+"
+                    : unreadCount}
                 </span>
               )}
             </div>
@@ -211,10 +719,13 @@ export default function NotificationsPage() {
 
           </div>
 
-          {unreadCount > 0 && (
+          <div className="flex items-center gap-3">
+
+            {/* REFRESH */}
             <button
               type="button"
-              onClick={markAllAsRead}
+              onClick={() => fetchNotifications(true)}
+              disabled={refreshing}
               className="
                 flex
                 w-fit
@@ -222,25 +733,101 @@ export default function NotificationsPage() {
                 items-center
                 gap-2
                 rounded-xl
-                bg-green-50
+                border
+                border-gray-200
+                bg-white
                 px-4
                 py-2.5
                 text-sm
                 font-medium
-                text-green-600
+                text-gray-600
                 transition
-                hover:bg-green-100
+                hover:bg-gray-50
+                disabled:cursor-not-allowed
+                disabled:opacity-50
               "
             >
-              <CheckCheck size={16} />
-              Mark all as read
-            </button>
-          )}
+              <RefreshCw
+                size={16}
+                className={
+                  refreshing
+                    ? "animate-spin"
+                    : ""
+                }
+              />
 
+              Refresh
+            </button>
+
+            {/* MARK ALL */}
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={markAllAsRead}
+                disabled={actionLoading === "all"}
+                className="
+                  flex
+                  w-fit
+                  cursor-pointer
+                  items-center
+                  gap-2
+                  rounded-xl
+                  bg-green-50
+                  px-4
+                  py-2.5
+                  text-sm
+                  font-medium
+                  text-green-600
+                  transition
+                  hover:bg-green-100
+                  disabled:cursor-not-allowed
+                  disabled:opacity-50
+                "
+              >
+                <CheckCheck size={16} />
+
+                {actionLoading === "all"
+                  ? "Updating..."
+                  : "Mark all as read"}
+              </button>
+            )}
+
+          </div>
         </div>
       </motion.div>
 
-      {/* ================= SUMMARY CARDS ================= */}
+      {/* ================================================
+          ERROR
+      ================================================= */}
+
+      {error && (
+        <div className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+
+          <div className="flex items-center gap-2">
+            <AlertCircle
+              size={18}
+              className="shrink-0 text-red-500"
+            />
+
+            <p className="text-sm text-red-600">
+              {error}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            className="text-xs font-semibold text-red-500 hover:text-red-700"
+          >
+            Dismiss
+          </button>
+
+        </div>
+      )}
+
+      {/* ================================================
+          SUMMARY CARDS
+      ================================================= */}
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
 
@@ -259,17 +846,25 @@ export default function NotificationsPage() {
         <SummaryCard
           icon={<Check size={19} />}
           label="Read"
-          value={notifications.length - unreadCount}
+          value={
+            notifications.length -
+            unreadCount
+          }
         />
 
       </div>
 
-      {/* ================= NOTIFICATION CARD ================= */}
+      {/* ================================================
+          NOTIFICATION CARD
+      ================================================= */}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15, duration: 0.45 }}
+        transition={{
+          delay: 0.15,
+          duration: 0.45,
+        }}
         className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
       >
 
@@ -292,6 +887,7 @@ export default function NotificationsPage() {
 
           <div className="flex items-center gap-2">
 
+            {/* ALL */}
             <button
               type="button"
               onClick={() => setFilter("all")}
@@ -313,6 +909,7 @@ export default function NotificationsPage() {
               All
             </button>
 
+            {/* UNREAD */}
             <button
               type="button"
               onClick={() => setFilter("unread")}
@@ -342,10 +939,14 @@ export default function NotificationsPage() {
 
           </div>
 
+          {/* CLEAR ALL */}
           {notifications.length > 0 && (
             <button
               type="button"
               onClick={clearAll}
+              disabled={
+                actionLoading === "clear-all"
+              }
               className="
                 flex
                 w-fit
@@ -357,30 +958,38 @@ export default function NotificationsPage() {
                 text-red-500
                 transition
                 hover:text-red-600
+                disabled:cursor-not-allowed
+                disabled:opacity-50
               "
             >
               <Trash2 size={15} />
-              Clear all
+
+              {actionLoading === "clear-all"
+                ? "Clearing..."
+                : "Clear all"}
             </button>
           )}
 
         </div>
 
-        {/* ================= LIST ================= */}
+        {/* LIST */}
 
         <div className="divide-y divide-gray-100">
 
           <AnimatePresence mode="popLayout">
 
             {filteredNotifications.length > 0 ? (
-              filteredNotifications.map((notification) => (
-                <NotificationItem
-                  key={notification.id}
-                  notification={notification}
-                  onRead={markAsRead}
-                  onDelete={deleteNotification}
-                />
-              ))
+              filteredNotifications.map(
+                (notification) => (
+                  <NotificationItem
+                    key={notification.id}
+                    notification={notification}
+                    onRead={markAsRead}
+                    onDelete={deleteNotification}
+                    actionLoading={actionLoading}
+                  />
+                )
+              )
             ) : (
               <EmptyState filter={filter} />
             )}
@@ -390,26 +999,37 @@ export default function NotificationsPage() {
         </div>
 
       </motion.div>
+
     </div>
   );
 }
 
-/* =========================
-   NOTIFICATION ITEM
-========================= */
+// ======================================================
+// NOTIFICATION ITEM
+// ======================================================
 
 function NotificationItem({
   notification,
   onRead,
   onDelete,
-}: NotificationItemProps) {
-  const iconData = getNotificationIcon(notification.type);
+  actionLoading,
+}: NotificationItemProps & {
+  actionLoading: string | null;
+}) {
+  const iconData =
+    getNotificationIcon(notification.type);
 
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
+      initial={{
+        opacity: 0,
+        x: -20,
+      }}
+      animate={{
+        opacity: 1,
+        x: 0,
+      }}
       exit={{
         opacity: 0,
         x: 30,
@@ -417,7 +1037,9 @@ function NotificationItem({
         paddingTop: 0,
         paddingBottom: 0,
       }}
-      transition={{ duration: 0.25 }}
+      transition={{
+        duration: 0.25,
+      }}
       className={`
         group
         relative
@@ -495,10 +1117,17 @@ function NotificationItem({
 
         <div className="mt-3 flex items-center gap-3">
 
+          {/* MARK AS READ */}
           {notification.unread && (
             <button
               type="button"
-              onClick={() => onRead(notification.id)}
+              onClick={() =>
+                onRead(notification.id)
+              }
+              disabled={
+                actionLoading ===
+                notification.id
+              }
               className="
                 flex
                 cursor-pointer
@@ -509,16 +1138,29 @@ function NotificationItem({
                 text-green-600
                 transition
                 hover:text-green-700
+                disabled:cursor-not-allowed
+                disabled:opacity-50
               "
             >
               <Check size={14} />
-              Mark as read
+
+              {actionLoading ===
+              notification.id
+                ? "Updating..."
+                : "Mark as read"}
             </button>
           )}
 
+          {/* DELETE */}
           <button
             type="button"
-            onClick={() => onDelete(notification.id)}
+            onClick={() =>
+              onDelete(notification.id)
+            }
+            disabled={
+              actionLoading ===
+              `delete-${notification.id}`
+            }
             className="
               flex
               cursor-pointer
@@ -529,22 +1171,29 @@ function NotificationItem({
               text-gray-400
               transition
               hover:text-red-500
+              disabled:cursor-not-allowed
+              disabled:opacity-50
             "
           >
             <Trash2 size={14} />
-            Delete
+
+            {actionLoading ===
+            `delete-${notification.id}`
+              ? "Deleting..."
+              : "Delete"}
           </button>
 
         </div>
 
       </div>
+
     </motion.div>
   );
 }
 
-/* =========================
-   SUMMARY CARD
-========================= */
+// ======================================================
+// SUMMARY CARD
+// ======================================================
 
 function SummaryCard({
   icon,
@@ -565,7 +1214,6 @@ function SummaryCard({
         hover:shadow-md
       "
     >
-
       <div className="flex items-center gap-3">
 
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 text-green-600">
@@ -583,25 +1231,29 @@ function SummaryCard({
         </div>
 
       </div>
-
     </motion.div>
   );
 }
 
-/* =========================
-   EMPTY STATE
-========================= */
+// ======================================================
+// EMPTY STATE
+// ======================================================
 
 function EmptyState({
   filter,
 }: EmptyStateProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={{
+        opacity: 0,
+        scale: 0.95,
+      }}
+      animate={{
+        opacity: 1,
+        scale: 1,
+      }}
       className="flex flex-col items-center justify-center px-6 py-16 text-center"
     >
-
       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-50 text-green-500">
         <Bell size={28} />
       </div>
@@ -617,14 +1269,13 @@ function EmptyState({
           ? "You're all caught up! There are no unread notifications."
           : "You're all caught up. New notifications will appear here."}
       </p>
-
     </motion.div>
   );
 }
 
-/* =========================
-   ICON HANDLER
-========================= */
+// ======================================================
+// ICON HANDLER
+// ======================================================
 
 function getNotificationIcon(
   type: NotificationType
@@ -663,6 +1314,34 @@ function getNotificationIcon(
         icon: <MessageSquare size={19} />,
         bg: "bg-purple-50",
         text: "text-purple-500",
+      };
+
+    case "success":
+      return {
+        icon: <Check size={19} />,
+        bg: "bg-green-50",
+        text: "text-green-600",
+      };
+
+    case "warning":
+      return {
+        icon: <AlertCircle size={19} />,
+        bg: "bg-yellow-50",
+        text: "text-yellow-500",
+      };
+
+    case "error":
+      return {
+        icon: <AlertCircle size={19} />,
+        bg: "bg-red-50",
+        text: "text-red-500",
+      };
+
+    case "info":
+      return {
+        icon: <Bell size={19} />,
+        bg: "bg-blue-50",
+        text: "text-blue-500",
       };
 
     default:
