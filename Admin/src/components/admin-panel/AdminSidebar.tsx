@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   X,
   LayoutDashboard,
@@ -16,7 +17,6 @@ import {
   LogOut,
   Globe2,
   Bell,
-  ChevronRight,
   BookOpen,
   Ticket,
 } from "lucide-react";
@@ -85,6 +85,50 @@ export default function AdminSidebar({
 }: AdminSidebarProps) {
   const pathname = usePathname();
 
+  const [notificationCount, setNotificationCount] = useState(0);
+
+  // =========================
+  // FETCH NOTIFICATION COUNT
+  // =========================
+  useEffect(() => {
+  const fetchNotificationCount = async () => {
+    try {
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+      const response = await fetch(
+        `${apiUrl.replace(/\/$/, "")}/api/notifications/unread-count`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        console.warn(
+          `Notification API returned ${response.status}`
+        );
+        setNotificationCount(0);
+        return;
+      }
+
+      const data = await response.json();
+
+      setNotificationCount(
+        data.count ?? data.unreadCount ?? data.total ?? 0
+      );
+    } catch (error) {
+      console.warn("Notification count unavailable:", error);
+      setNotificationCount(0);
+    }
+  };
+
+  fetchNotificationCount();
+
+  const interval = setInterval(fetchNotificationCount, 30000);
+
+  return () => clearInterval(interval);
+}, []);
+
   const isActive = (href: string) => {
     if (href === "/admin-panel") {
       return pathname === "/admin-panel";
@@ -92,6 +136,10 @@ export default function AdminSidebar({
 
     return pathname.startsWith(href);
   };
+
+  // Main client website URL
+  const clientUrl =
+    process.env.NEXT_PUBLIC_CLIENT_URL || "http://localhost:3000";
 
   return (
     <>
@@ -145,7 +193,6 @@ export default function AdminSidebar({
         {/* ================= ADMIN PROFILE ================= */}
         <div className="shrink-0 px-5 pb-5 pt-6">
           <div className="flex flex-col items-center text-center">
-            {/* Avatar */}
             <div
               className="
                 relative
@@ -158,9 +205,10 @@ export default function AdminSidebar({
                 shadow-md
               "
             >
-              <span className="text-xl font-bold text-white">A</span>
+              <span className="text-xl font-bold text-white">
+                A
+              </span>
 
-              {/* Online indicator */}
               <span
                 className="
                   absolute bottom-0 right-0
@@ -283,9 +331,9 @@ export default function AdminSidebar({
             </p>
 
             <div className="space-y-1">
-              {/* Visit Website */}
-              <Link
-                href="/"
+              {/* ================= VISIT WEBSITE ================= */}
+              <a
+                href={clientUrl}
                 onClick={onClose}
                 className="
                   group
@@ -312,9 +360,9 @@ export default function AdminSidebar({
                 />
 
                 <span>Visit Website</span>
-              </Link>
+              </a>
 
-              {/* Notifications */}
+              {/* ================= NOTIFICATIONS ================= */}
               <Link
                 href="/admin-panel/notifications"
                 onClick={onClose}
@@ -344,21 +392,26 @@ export default function AdminSidebar({
 
                 <span>Notifications</span>
 
-                <span
-                  className="
-                    ml-auto
-                    flex h-5 min-w-5
-                    items-center justify-center
-                    rounded-full
-                    bg-[#F4A62A]
-                    px-1
-                    text-[10px]
-                    font-bold
-                    text-white
-                  "
-                >
-                  5
-                </span>
+                {/* Dynamic notification count */}
+                {notificationCount > 0 && (
+                  <span
+                    className="
+                      ml-auto
+                      flex h-5 min-w-5
+                      items-center justify-center
+                      rounded-full
+                      bg-[#F4A62A]
+                      px-1
+                      text-[10px]
+                      font-bold
+                      text-white
+                    "
+                  >
+                    {notificationCount > 99
+                      ? "99+"
+                      : notificationCount}
+                  </span>
+                )}
               </Link>
             </div>
           </div>
