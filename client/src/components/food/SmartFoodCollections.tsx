@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+
 type FoodCollection = {
   title: string;
   description: string;

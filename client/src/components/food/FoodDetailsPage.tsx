@@ -23,6 +23,7 @@ import { useState } from "react";
 import { formatBdt } from "@/data/services/food";
 import type { RestaurantSpotlight } from "@/types/food";
 
+
 const menuItems = [
   {
     name: "Signature local platter",

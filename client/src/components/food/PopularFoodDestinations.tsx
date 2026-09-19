@@ -11,6 +11,7 @@ export function PopularFoodDestinations() {
   const [foodDestinations, setFoodDestinations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  
   const [slide, setSlide] = useState(0);
   const [cardsPerView, setCardsPerView] = useState(4);
   const [paused, setPaused] = useState(false);

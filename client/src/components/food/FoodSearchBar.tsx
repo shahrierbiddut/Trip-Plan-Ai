@@ -7,6 +7,7 @@ import { useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import type { DiningStyle } from "@/types/food";
 
+
 const diningStyles: DiningStyle[] = [
   "Local favourites",
   "Family dining",
