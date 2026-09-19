@@ -1001,7 +1001,7 @@ function LoveAndConcernsCard({ data }: { data: any }) {
         {/* Love */}
 
         <div className="mt-4 space-y-1">
-          {data.lovedThings.map((item, index) => {
+          {data.lovedThings.map((item: any, index: number) => {
             const Icon = IconMap[item.icon] || Sparkles;
 
             return (
@@ -1089,7 +1089,7 @@ function LoveAndConcernsCard({ data }: { data: any }) {
         </div>
 
         <div className="mt-2 space-y-1">
-          {data.concerns.map((item, index) => {
+          {data.concerns.map((item: any, index: number) => {
             const Icon = IconMap[item.icon] || Sparkles;
 
             return (

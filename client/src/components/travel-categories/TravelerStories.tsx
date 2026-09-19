@@ -62,7 +62,7 @@ export default function TravelerStories() {
         <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {stories.map((story, index) => (
             <motion.article
-              key={story._id}
+              key={story.id || (story as any)._id}
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.3 }}
@@ -98,45 +98,45 @@ export default function TravelerStories() {
                 </h3>
                 <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-[#087F5B]">
                   <MapPin size={12} />
-                  {story.location || "Unknown"}
+                  {story.destination || (story as any).location || "Unknown"}
                 </div>
 
                 {/* Metadata */}
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] font-medium text-[#66736D]">
                   <span className="inline-flex items-center gap-1">
                     <CalendarDays size={11} />
-                    3 Days
+                    {story.duration || "3 Days"}
                   </span>
                   <span className="text-[#CCD5D0]">·</span>
                   <span className="inline-flex items-center gap-1">
                     <Tag size={11} />
-                    Adventure
+                    {story.travelStyle || "Adventure"}
                   </span>
                   <span className="text-[#CCD5D0]">·</span>
                   <span className="inline-flex items-center gap-1">
                     <Wallet size={11} />
-                    Moderate
+                    {story.budget || "Moderate"}
                   </span>
                 </div>
 
                 {/* Story Excerpt */}
                 <p className="mt-3 text-[12px] font-medium leading-relaxed text-[#5B6C63] sm:text-[13px] line-clamp-3">
-                  {story.content}
+                  {story.story || (story as any).content}
                 </p>
 
                 {/* Footer — Avatar + Rating + CTA */}
                 <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#E8EDEA] pt-4">
                   <div className="flex items-center gap-2.5">
                     <Image
-                      src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop"
-                      alt={story.authorName || "User"}
+                      src={story.travelerAvatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop"}
+                      alt={story.travelerName || (story as any).authorName || "User"}
                       width={32}
                       height={32}
                       className="rounded-full bg-[#EAF7F1] object-cover"
                     />
                     <div>
                       <p className="text-[11px] font-bold text-[#17211D]">
-                        {story.authorName || "Anonymous"}
+                        {story.travelerName || (story as any).authorName || "Anonymous"}
                       </p>
                       <p className="text-[9px] font-medium text-[#87938D]">
                         Traveler
