@@ -143,7 +143,7 @@ export default function PopularDestinations() {
   return (
     <section className="relative overflow-hidden bg-white py-10 sm:py-12 lg:py-16">
 
-      <div className="relative w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
+      <div className="relative w-full">
         {/* SECTION HEADER */}
 
         <motion.div
@@ -151,7 +151,7 @@ export default function PopularDestinations() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.45 }}
           transition={{ duration: 0.7, ease: revealEase }}
-          className="mb-6 flex flex-col items-start justify-between gap-4 sm:mb-7 sm:flex-row sm:items-end sm:gap-5"
+          className="mb-6 flex flex-col items-start justify-between gap-4 px-4 sm:mb-7 sm:flex-row sm:items-end sm:gap-5 sm:px-6 lg:px-8 xl:px-10 2xl:px-12"
         >
           <div>
             <div className="mb-2 inline-flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.2em] text-[#087F5B] sm:text-[10px]">
@@ -205,7 +205,7 @@ export default function PopularDestinations() {
           <div
             ref={sliderRef}
             onScroll={handleSliderScroll}
-            className="flex snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-hidden scroll-smooth touch-pan-x overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-5"
+            className="flex snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-hidden scroll-smooth touch-pan-x overscroll-x-contain px-4 pb-6 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-5 sm:px-6 lg:px-8 xl:px-10 2xl:px-12"
           >
             {destinations.map((destination, index) => (
               <DestinationCard

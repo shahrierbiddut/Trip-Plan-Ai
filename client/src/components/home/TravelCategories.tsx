@@ -381,7 +381,7 @@ export default function TravelCategories() {
 
         {/* CAROUSEL PAGINATION */}
 
-        <div className="mt-1 flex items-center justify-center gap-2 sm:mt-2">
+        <div className="mt-1 flex flex-wrap items-center justify-center gap-2 sm:mt-2">
           {travelCategories.map((category, index) => (
             <button
               key={category.slug}

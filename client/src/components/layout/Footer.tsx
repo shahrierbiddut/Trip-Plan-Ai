@@ -287,7 +287,7 @@ function FooterColumn({
       <h4 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white">
         {title}
       </h4>
-      <ul className="mt-4 grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-1">
+      <ul className="mt-4 flex flex-col gap-3">
         {children}
       </ul>
     </div>

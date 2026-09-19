@@ -178,7 +178,7 @@ export default function RegionalFoodSection() {
                 moveCards(event.key === "ArrowLeft" ? -1 : 1);
               }
             }}
-            className="flex overflow-x-auto overscroll-x-contain py-2 [scrollbar-width:none] [mask-image:linear-gradient(to_right,transparent,black_3%,black_94%,transparent)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#edba62] [&::-webkit-scrollbar]:hidden"
+            className="flex overflow-x-auto overscroll-x-contain py-2 [scrollbar-width:none] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#edba62] [&::-webkit-scrollbar]:hidden md:[mask-image:linear-gradient(to_right,transparent,black_3%,black_94%,transparent)]"
           >
             {/* CSS keeps the server and first client render identical, including
                 when reduced motion is enabled before hydration. */}
