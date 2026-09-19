@@ -285,7 +285,7 @@ export default function CalendarPage() {
           return;
         }
 
-        const url = process.env.NEXT_PUBLIC_API_URL?.replace("localhost", "127.0.0.1") || "http://127.0.0.1:5000";
+        const url = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/+$/, "");
         const response = await fetch(`${url}/api/trips/user/${session.user.id}`);
         if (!response.ok) throw new Error("Failed to fetch trips");
         const resData = await response.json();

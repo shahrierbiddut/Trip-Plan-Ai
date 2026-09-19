@@ -1,5 +1,5 @@
-// Use 127.0.0.1 for Node 18+ compatibility to avoid IPv6 resolution issues during SSR
-const url = (process.env.NEXT_PUBLIC_API_URL?.replace("localhost", "127.0.0.1") || "http://127.0.0.1:5000").replace(/\/+$/, "");
+import { API_BASE_URL } from "@/lib/api/config";
+const url = API_BASE_URL;
 
 import { TravelCategory } from "@/types/travelCategory";
 

@@ -40,7 +40,7 @@ export default function BudgetPage() {
       const { data: session } = await authClient.getSession();
       if (!session?.user?.id) return;
       
-      const url = (process.env.NEXT_PUBLIC_API_URL?.replace("localhost", "127.0.0.1") || "http://127.0.0.1:5000").replace(/\/+$/, "");
+      const url = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/+$/, "");
       const response = await fetch(`${url}/api/trips/user/${session.user.id}`);
       
       if (!response.ok) throw new Error("Failed to fetch trips");
@@ -59,7 +59,7 @@ export default function BudgetPage() {
   const fetchExpenses = async () => {
     if (!selectedTrip) return;
     try {
-      const url = (process.env.NEXT_PUBLIC_API_URL?.replace("localhost", "127.0.0.1") || "http://127.0.0.1:5000").replace(/\/+$/, "");
+      const url = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/+$/, "");
       const response = await fetch(`${url}/api/expenses/trip/${selectedTrip._id}`);
       if (!response.ok) throw new Error("Failed to fetch expenses");
       const data = await response.json();
@@ -86,7 +86,7 @@ export default function BudgetPage() {
       const { data: session } = await authClient.getSession();
       if (!session?.user?.id) return;
 
-      const url = (process.env.NEXT_PUBLIC_API_URL?.replace("localhost", "127.0.0.1") || "http://127.0.0.1:5000").replace(/\/+$/, "");
+      const url = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/+$/, "");
       const response = await fetch(`${url}/api/expenses`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -114,7 +114,7 @@ export default function BudgetPage() {
 
   const handleDeleteExpense = async (id: string) => {
     try {
-      const url = (process.env.NEXT_PUBLIC_API_URL?.replace("localhost", "127.0.0.1") || "http://127.0.0.1:5000").replace(/\/+$/, "");
+      const url = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/+$/, "");
       const response = await fetch(`${url}/api/expenses/${id}`, {
         method: "DELETE"
       });

@@ -82,7 +82,7 @@ export default function ProfilePage() {
       if (!session?.user?.id) return;
       setSessionUser(session.user);
       
-      const url = process.env.NEXT_PUBLIC_API_URL?.replace("localhost", "127.0.0.1") || "http://127.0.0.1:5000";
+      const url = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/+$/, "");
       const response = await fetch(`${url}/api/users/${session.user.id}`);
       
       if (response.ok) {
@@ -126,7 +126,7 @@ export default function ProfilePage() {
     setSaving(true);
     
     try {
-      const url = process.env.NEXT_PUBLIC_API_URL?.replace("localhost", "127.0.0.1") || "http://127.0.0.1:5000";
+      const url = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/+$/, "");
       
       const response = await fetch(`${url}/api/users/${sessionUser.id}`, {
         method: "PUT",
