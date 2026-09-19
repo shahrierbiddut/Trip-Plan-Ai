@@ -18,11 +18,6 @@ type Props = {
   onApply: (patch: Partial<TripPlanFormState>) => void;
 };
 
-type PlanResponse = {
-  reply: string;
-  proposal: Partial<TripPlanFormState>;
-};
-
 const labels: Record<string, string> = {
   destinationSlug: "গন্তব্য",
   startDate: "শুরুর তারিখ",
@@ -323,7 +318,6 @@ export default function AIFormAssistant({
     setProposal(null);
     stopAudio();
 
-    const currentForm = formRef.current;
     const previousMessages = messages;
 
     const nextMessages: Message[] = [
@@ -336,41 +330,42 @@ export default function AIFormAssistant({
     setInput("");
 
     try {
-      const response = await request("plan", {
+      const response = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          messages: nextMessages.slice(-29),
-          currentForm,
+          messages: nextMessages.slice(-20),
         }),
+        signal: AbortSignal.timeout(65_000),
       });
 
-      const data = (await response.json()) as PlanResponse;
+      const data = (await response.json().catch(() => ({}))) as {
+        reply?: string;
+        error?: string;
+        message?: string;
+      };
 
-      if (
-        typeof data.reply !== "string" ||
-        !data.reply.trim() ||
-        !data.proposal ||
-        typeof data.proposal !== "object" ||
-        Array.isArray(data.proposal)
-      ) {
-        throw new Error("AI-এর response সঠিক নয়। আবার চেষ্টা করুন।");
+      if (!response.ok || !data.reply?.trim()) {
+        throw new Error(
+          data.error ||
+            data.message ||
+            "AI-এর response সঠিক নয়। আবার চেষ্টা করুন।"
+        );
       }
 
       if (!alive.current) return;
+
+      const assistantReply = data.reply.trim();
 
       setMessages([
         ...nextMessages,
         {
           role: "assistant",
-          content: data.reply,
+          content: assistantReply,
         },
       ]);
-
-      snapshot.current = JSON.stringify(currentForm);
-      setProposal(data.proposal);
     } catch (cause) {
       if (alive.current) {
         // Restore the text so the user can retry.

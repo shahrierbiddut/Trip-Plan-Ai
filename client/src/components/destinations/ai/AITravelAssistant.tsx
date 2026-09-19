@@ -4,48 +4,103 @@ import { useState } from "react";
 import { Sparkles, Send, Bot, X } from "lucide-react";
 import { Input, Button } from "@heroui/react";
 
+type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
+
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+).replace(/\/+$/, "");
+
+function ChatLauncherIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 40 40"
+      className="h-9 w-9"
+      fill="none"
+    >
+      <circle cx="20" cy="20" r="12.5" fill="white" />
+      <path
+        d="M12.5 19.5c0-4.35 3.45-7.5 7.9-7.5 4.42 0 7.6 3.1 7.6 7.35 0 4.25-3.27 7.45-7.68 7.45-1.23 0-2.37-.25-3.36-.73l-4.1 1.34 1.34-3.84a7.16 7.16 0 0 1-1.7-4.07Z"
+        fill="#0B4A3B"
+        stroke="#F4A934"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <circle cx="17.1" cy="19.55" r="1.25" fill="#F4A934" />
+      <circle cx="20.35" cy="19.55" r="1.25" fill="#F4A934" />
+      <circle cx="23.6" cy="19.55" r="1.25" fill="#F4A934" />
+    </svg>
+  );
+}
+
 export default function AITravelAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
       content: "Hi! I'm your AI Travel Assistant. Ask me anything about Cox's Bazar!"
     }
   ]);
   const [isTyping, setIsTyping] = useState(false);
+  const [error, setError] = useState("");
 
-  const predefinedResponses: Record<string, string> = {
-    "where should i go for sunset?": "Cox's Bazar Sea Beach is a popular choice for a relaxing sunset experience. For a quieter coastal atmosphere, consider exploring Inani Beach or walking along Marine Drive.",
-    "what's best for a family trip?": "Cox's Bazar Sea Beach, Himchari National Park, and selected Marine Drive stops can work well for a relaxed family itinerary.",
-    "can i plan this in 3 days?": "Yes, 3 days is perfect! Day 1: Beach & local food. Day 2: Himchari & Marine Drive. Day 3: Inani beach & relaxing.",
-    "where should i eat seafood?": "You can find excellent fresh seafood at the beachside restaurants in Kolatoli point. Grilled pomfret and lobsters are local specialties.",
-  };
+  const handleSend = async () => {
+    if (!query.trim() || isTyping) return;
 
-  const handleSend = () => {
-    if (!query.trim()) return;
-
-    // Add user message
     const userMsg = query.trim();
-    setMessages(prev => [...prev, { role: "user", content: userMsg }]);
+    const nextMessages: ChatMessage[] = [
+      ...messages,
+      { role: "user", content: userMsg },
+    ];
+
+    setMessages(nextMessages);
     setQuery("");
+    setError("");
     setIsTyping(true);
 
-    // Mock AI response
-    setTimeout(() => {
-      const lowerQuery = userMsg.toLowerCase();
-      let aiResponse = "I can help you plan your perfect trip to Cox's Bazar! For specific itineraries or real-time booking, try the 'Plan My Trip' feature.";
-      
-      for (const [key, val] of Object.entries(predefinedResponses)) {
-        if (lowerQuery.includes(key.replace("?", ""))) {
-          aiResponse = val;
-          break;
-        }
+    try {
+      const response = await fetch(`${API_URL}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: nextMessages.slice(-20) }),
+        signal: AbortSignal.timeout(65_000),
+      });
+
+      const data = (await response.json().catch(() => ({}))) as {
+        reply?: string;
+        error?: string;
+        message?: string;
+      };
+
+      if (!response.ok || !data.reply?.trim()) {
+        throw new Error(
+          data.error || data.message || "AI could not answer. Please try again."
+        );
       }
 
-      setMessages(prev => [...prev, { role: "assistant", content: aiResponse }]);
+      setMessages((current) => [
+        ...current,
+        { role: "assistant", content: data.reply!.trim() },
+      ]);
+    } catch (cause) {
+      if (cause instanceof Error && cause.name === "TimeoutError") {
+        setError("The answer is taking too long. Please try again.");
+      } else if (cause instanceof TypeError) {
+        setError("Could not connect to the server.");
+      } else {
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : "AI could not answer. Please try again."
+        );
+      }
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   };
 
   const handleQuickPrompt = (prompt: string) => {
@@ -66,9 +121,12 @@ export default function AITravelAssistant() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="w-16 h-16 bg-[#F4A62A] hover:bg-[#F4B942] rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(244,166,42,0.4)] hover:shadow-[0_10px_40px_rgba(244,166,42,0.5)] transition-all duration-300 hover:-translate-y-1 group pointer-events-auto border-4 border-white/20"
+          aria-label="Open AI travel chat"
+          className="group pointer-events-auto flex h-20 w-20 items-center justify-center rounded-full border border-white/90 bg-[#0B4A3B] shadow-[0_14px_36px_rgba(6,55,43,0.32)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(6,55,43,0.4)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#F4A934]/40"
         >
-          <Sparkles className="w-7 h-7 text-[#17211D] group-hover:scale-110 transition-transform" />
+          <span className="transition-transform duration-300 group-hover:scale-110">
+            <ChatLauncherIcon />
+          </span>
         </button>
       )}
 
@@ -83,7 +141,7 @@ export default function AITravelAssistant() {
               </div>
               <div>
                 <h3 className="text-lg font-serif font-bold leading-tight">Ask AI</h3>
-                <p className="text-[11px] text-white/70">Cox's Bazar Expert</p>
+                <p className="text-[11px] text-white/70">Cox&apos;s Bazar Expert</p>
               </div>
             </div>
             <button 
@@ -126,6 +184,11 @@ export default function AITravelAssistant() {
                 </div>
               </div>
             )}
+            {error && (
+              <p className="rounded-lg border border-red-300/25 bg-red-400/10 px-3 py-2 text-xs leading-relaxed text-red-100">
+                {error}
+              </p>
+            )}
           </div>
 
           {/* Quick Prompts */}
@@ -146,13 +209,21 @@ export default function AITravelAssistant() {
             <Input 
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  void handleSend();
+                }
+              }}
+              disabled={isTyping}
               placeholder="Ask anything..."
               className="flex-1 bg-white/10 border-white/20 hover:border-white/40 focus-within:!border-[#F4A62A] text-white placeholder:text-white/40 text-sm"
             />
             <Button 
-              onClick={handleSend}
+              onClick={() => void handleSend()}
               isIconOnly
+              isDisabled={isTyping || !query.trim()}
+              aria-label="Send message"
               className="bg-[#F4A62A] text-[#17211D] hover:bg-[#F4B942]"
             >
               <Send className="w-4 h-4" />
