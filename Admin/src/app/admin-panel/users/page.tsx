@@ -41,6 +41,7 @@ const cardVariants = {
 const ITEMS_PER_PAGE = 8;
 
 type UserStatus = "Active" | "Inactive";
+type UserRole = "admin" | "Registered User";
 
 interface User {
   id: string;
@@ -51,7 +52,7 @@ interface User {
   joined: string;
   trips: number;
   status: UserStatus;
-  role: string;
+  role: UserRole;
 }
 
 interface ApiUser {
@@ -155,7 +156,7 @@ const [formLoading, setFormLoading] = useState(false);
               })(),
               trips: typeof user.trips === "number" ? user.trips : 0,
               status: user.status === "Inactive" ? "Inactive" : "Active",
-              role: user.role || "Registered User",
+              role: user.role?.toLowerCase() === "admin" ? "admin" : "Registered User",
             })
           );
 
@@ -187,7 +188,10 @@ const [formLoading, setFormLoading] = useState(false);
         user.email.toLowerCase().includes(searchValue);
 
       const matchesStatus =
-        statusFilter === "All" || user.status === statusFilter;
+        statusFilter === "All" ||
+        (statusFilter === "Admin"
+          ? user.role === "admin"
+          : user.status === statusFilter);
 
       return matchesSearch && matchesStatus;
     });
@@ -219,6 +223,10 @@ const [formLoading, setFormLoading] = useState(false);
     (user) => user.status === "Inactive"
   ).length;
 
+  const adminUsers = users.filter(
+    (user) => user.role === "admin"
+  ).length;
+
   /* =========================================================
       SEARCH
   ========================================================= */
@@ -245,6 +253,51 @@ const [formLoading, setFormLoading] = useState(false);
     setSearch("");
     setStatusFilter("All");
     setCurrentPage(1);
+  };
+
+  /* =========================================================
+      UPDATE USER ROLE
+  ========================================================= */
+
+  const handleRoleUpdate = async (id: string, newRole: UserRole) => {
+    try {
+      setActionLoading(id);
+
+      const response = await fetch(`${baseUrl}/api/users/${id}/role`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ role: newRole }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to update user role");
+      }
+
+      setUsers((currentUsers) =>
+        currentUsers.map((user) =>
+          user.id === id ? { ...user, role: newRole } : user
+        )
+      );
+
+      setSelectedUser((currentUser) => {
+        if (!currentUser || currentUser.id !== id) {
+          return currentUser;
+        }
+
+        return {
+          ...currentUser,
+          role: newRole,
+        };
+      });
+    } catch (error) {
+      console.error("Failed to update role:", error);
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   /* =========================================================
@@ -385,9 +438,9 @@ const handleUserSubmit = async (
           : userForm.status,
 
       role:
-        apiUser.role ||
-        userForm.role ||
-        "Registered User",
+        (apiUser.role?.toLowerCase() === "admin" || userForm.role.toLowerCase() === "admin")
+          ? "admin"
+          : "Registered User",
     };
 
     if (isEditing) {
@@ -474,7 +527,9 @@ const handleUserSubmit = async (
 
             const matchesStatus =
               statusFilter === "All" ||
-              user.status === statusFilter;
+              (statusFilter === "Admin"
+                ? user.role === "admin"
+                : user.status === statusFilter);
 
             return matchesSearch && matchesStatus;
           }).length / ITEMS_PER_PAGE
@@ -895,6 +950,7 @@ const handleUserSubmit = async (
               <option value="All">All Users</option>
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
+              <option value="Admin">Admin ({adminUsers})</option>
             </select>
           </div>
         </div>
@@ -1116,94 +1172,34 @@ const handleUserSubmit = async (
       {/* Actions */}
       <td className="px-6 py-4">
         <div className="flex items-center gap-2">
-
-          {/* View */}
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setSelectedUser(user)}
-            title="View User"
-            className="
-              cursor-pointer
-              rounded-lg
-              p-2
-              text-gray-400
-              transition-colors
-              hover:bg-green-50
-              hover:text-green-600
-            "
-          >
-            <Eye size={17} />
-          </motion.button>
-
-          {/* Status */}
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.95 }}
+          <select
+            value={user.role}
             disabled={actionLoading === user.id}
-            onClick={() =>
-              handleStatusUpdate(user.id, user.status)
+            onChange={(e) =>
+              handleRoleUpdate(user.id, e.target.value as UserRole)
             }
-            title={
-              user.status === "Active"
-                ? "Suspend User"
-                : "Activate User"
-            }
+            title="Change User Role"
             className="
-              cursor-pointer
+              h-9 cursor-pointer
               rounded-lg
-              p-2
-              text-gray-400
-              transition-colors
-              hover:bg-orange-50
-              hover:text-orange-600
+              border border-gray-200
+              bg-white
+              px-2.5
+              text-xs font-semibold
+              text-gray-600
+              outline-none
+              transition-all
+              focus:border-green-500
+              focus:ring-2
+              focus:ring-green-50
               disabled:cursor-not-allowed
               disabled:opacity-50
             "
           >
-            {user.status === "Active" ? (
-              <UserX size={17} />
-            ) : (
-              <UserCheck size={17} />
-            )}
-          </motion.button>
+            <option value="Registered User">Registered User</option>
+            <option value="admin">Admin</option>
+          </select>
 
-          {/* Edit */}
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => {
-              setEditingUser(user);
-
-              setUserForm({
-                name: user.name,
-                email: user.email,
-                phone: user.phone,
-                location: user.location,
-                role: user.role,
-                status: user.status,
-              });
-
-              setShowUserModal(true);
-            }}
-            title="Edit User"
-            className="
-              cursor-pointer
-              rounded-lg
-              p-2
-              text-gray-400
-              transition-colors
-              hover:bg-blue-50
-              hover:text-blue-600
-            "
-          >
-            <Pencil size={17} />
-          </motion.button>
-
-          {/* Delete */}
           <motion.button
             type="button"
             whileHover={{ scale: 1.08 }}
@@ -1222,7 +1218,6 @@ const handleUserSubmit = async (
           >
             <Trash2 size={17} />
           </motion.button>
-
         </div>
       </td>
     </motion.tr>
@@ -1364,118 +1359,37 @@ const handleUserSubmit = async (
                         {/* Actions */}
 
                         <div className="mt-3 flex gap-2">
-                          {/* View */}
-
-                          <motion.button
-                            type="button"
-                            whileTap={{
-                              scale: 0.95,
-                            }}
-                            onClick={() =>
-                              setSelectedUser(user)
-                            }
-                            className="
-                              flex flex-1 cursor-pointer
-                              items-center
-                              justify-center
-                              gap-1.5
-                              rounded-lg
-                              bg-green-50
-                              py-2
-                              text-xs font-semibold
-                              text-green-700
-                              transition-colors
-                              hover:bg-green-100
-                            "
-                          >
-                            <Eye size={14} />
-                            View
-                          </motion.button>
-
-                          {/* Status */}
-
-                          <motion.button
-                            type="button"
-                            whileTap={{
-                              scale: 0.95,
-                            }}
+                          <select
+                            value={user.role}
                             disabled={actionLoading === user.id}
-                            onClick={() =>
-                              handleStatusUpdate(
+                            onChange={(e) =>
+                              handleRoleUpdate(
                                 user.id,
-                                user.status
+                                e.target.value as UserRole
                               )
                             }
-                            className={`
-                              flex flex-1 cursor-pointer
-                              items-center
-                              justify-center
-                              gap-1.5
+                            className="
+                              h-9 min-w-0 flex-1
+                              cursor-pointer
                               rounded-lg
-                              py-2
+                              border border-gray-200
+                              bg-white
+                              px-2
                               text-xs font-semibold
-                              transition-colors
+                              text-gray-600
+                              outline-none
+                              focus:border-green-500
+                              focus:ring-2
+                              focus:ring-green-50
                               disabled:cursor-not-allowed
                               disabled:opacity-50
-                              ${
-                                user.status === "Active"
-                                  ? "bg-orange-50 text-orange-600 hover:bg-orange-100"
-                                  : "bg-green-50 text-green-700 hover:bg-green-100"
-                              }
-                            `}
+                            "
                           >
-                            {user.status === "Active" ? (
-                              <>
-                                <UserX size={14} />
-                                Suspend
-                              </>
-                            ) : (
-                              <>
-                                <UserCheck size={14} />
-                                Activate
-                              </>
-                            )}
-                          </motion.button>
-
-                          {/* Edit */}
-
-<motion.button
-  type="button"
-  whileHover={{
-    scale: 1.1,
-  }}
-  whileTap={{
-    scale: 0.9,
-  }}
-  onClick={() => {
-    setEditingUser(user);
-
-    setUserForm({
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      location: user.location,
-      role: user.role,
-      status: user.status,
-    });
-
-    setShowUserModal(true);
-  }}
-  title="Edit User"
-  className="
-    cursor-pointer
-    rounded-lg
-    p-2
-    text-gray-400
-    transition-colors
-    hover:bg-blue-50
-    hover:text-blue-600
-  "
->
-  <Pencil size={17} />
-</motion.button>
-
-                          {/* Delete */}
+                            <option value="Registered User">
+                              Registered User
+                            </option>
+                            <option value="admin">Admin</option>
+                          </select>
 
                           <motion.button
                             type="button"
@@ -1486,12 +1400,13 @@ const handleUserSubmit = async (
                               setDeleteUser(user)
                             }
                             className="
-                              flex flex-1 cursor-pointer
+                              flex cursor-pointer
                               items-center
                               justify-center
                               gap-1.5
                               rounded-lg
                               bg-red-50
+                              px-3
                               py-2
                               text-xs font-semibold
                               text-red-500
@@ -2516,8 +2431,6 @@ const handleUserSubmit = async (
                   Registered User
                 </option>
                 <option value="Admin">Admin</option>
-                <option value="Organizer">Organizer</option>
-                <option value="Moderator">Moderator</option>
               </select>
             </div>
 

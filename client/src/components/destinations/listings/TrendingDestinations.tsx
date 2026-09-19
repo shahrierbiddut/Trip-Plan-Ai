@@ -26,9 +26,9 @@ export default function TrendingDestinations({ destinations }: TrendingDestinati
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {trending.map((destination) => (
+        {trending.map((destination, index) => (
           <Link
-            key={destination.id}
+            key={destination.slug || `trending-${index}`}
             href={`/destinations/${destination.slug}`}
             className="group bg-white border border-[#E2E7E3] rounded-xl p-3 flex items-center gap-4 hover:shadow-md transition-shadow"
           >

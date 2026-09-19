@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSession } from "@/lib/auth-client";
 import {
   Mail,
   Phone,
@@ -61,21 +62,122 @@ interface ActivityItemProps {
   time: string;
 }
 
+const EMPTY_PROFILE: Profile = {
+  name: "",
+  email: "",
+  phone: "",
+  location: "",
+  role: "",
+  joined: "",
+  bio: "",
+};
+
 export default function ProfilePage() {
   const [editing, setEditing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [profileError, setProfileError] = useState("");
 
-  const [profile, setProfile] = useState<Profile>({
-    name: "Admin User",
-    email: "admin@tripplan.ai",
-    phone: "+880 1700-000000",
-    location: "Sylhet, Bangladesh",
-    role: "Super Admin",
-    joined: "January 15, 2026",
-    bio: "Managing Trip Plan AI platform, users, destinations and travel content.",
-  });
+  const { data: session, isPending: sessionPending } = useSession();
+  const currentUser = session?.user;
+  const currentUserRole = (currentUser as { role?: string } | undefined)?.role;
 
-  const [formData, setFormData] = useState<Profile>(profile);
+  const [profile, setProfile] = useState<Profile>(EMPTY_PROFILE);
+  const [formData, setFormData] = useState<Profile>(EMPTY_PROFILE);
+
+  useEffect(() => {
+    if (sessionPending) return;
+
+    const controller = new AbortController();
+
+    const loadCurrentAdminProfile = async () => {
+      setProfileLoading(true);
+      setProfileError("");
+      setIsAdmin(false);
+
+      if (!currentUser?.id) {
+        setProfileError("Please sign in to view this page.");
+        setProfileLoading(false);
+        return;
+      }
+
+      // Check the current session role before requesting profile information.
+      if (String(currentUserRole || "").trim().toLowerCase() !== "admin") {
+        setProfileError("Admin access is required to view this profile.");
+        setProfileLoading(false);
+        return;
+      }
+
+      try {
+        const apiUrl = (
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+        ).replace(/\/+$/, "");
+
+        const response = await fetch(`${apiUrl}/api/users/${currentUser.id}`, {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to load profile: ${response.status}`);
+        }
+
+        const result = await response.json();
+        const user = result?.data ?? result;
+
+        // Verify the MongoDB role too before rendering any profile information.
+        if (String(user?.role || "").trim().toLowerCase() !== "admin") {
+          setProfileError("Admin access is required to view this profile.");
+          setIsAdmin(false);
+          return;
+        }
+
+        const joinedDate = user?.createdAt
+          ? new Date(user.createdAt).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })
+          : "Not available";
+
+        const currentProfile: Profile = {
+          name: user?.name || currentUser.name || "Admin",
+          email: user?.email || currentUser.email || "",
+          phone: user?.phone || "Not provided",
+          location: user?.location || "Not provided",
+          role: "Admin",
+          joined: joinedDate,
+          bio: user?.bio || "No bio added yet.",
+        };
+
+        setProfile(currentProfile);
+        setFormData(currentProfile);
+        setIsAdmin(true);
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          console.error("Failed to load admin profile:", error);
+          setProfileError("Unable to load the current admin profile.");
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setProfileLoading(false);
+        }
+      }
+    };
+
+    loadCurrentAdminProfile();
+
+    return () => controller.abort();
+  }, [
+    currentUser?.id,
+    currentUser?.name,
+    currentUser?.email,
+    currentUserRole,
+    sessionPending,
+  ]);
 
   // Password states
   const [currentPassword, setCurrentPassword] = useState("");
@@ -168,6 +270,46 @@ export default function ProfilePage() {
     setEditing(false);
   };
 
+  const profileInitials =
+    profile.name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "A";
+
+  if (sessionPending || profileLoading) {
+    return (
+      <div className="w-full min-w-0 overflow-x-hidden p-4 sm:p-6 lg:p-8 mt-[95px]">
+        <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-green-100 border-t-green-600" />
+          <p className="mt-4 text-sm font-medium text-gray-500">
+            Loading admin profile...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="w-full min-w-0 overflow-x-hidden p-4 sm:p-6 lg:p-8 mt-[95px]">
+        <div className="rounded-2xl border border-red-100 bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-500">
+            <ShieldCheck size={22} />
+          </div>
+          <h1 className="mt-4 text-xl font-bold text-gray-900">
+            Admin access required
+          </h1>
+          <p className="mx-auto mt-2 max-w-md text-sm text-gray-500">
+            {profileError ||
+              "This profile is available only to an admin account."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full min-w-0 overflow-x-hidden p-4 sm:p-6 lg:p-8 mt-[95px]">
 
@@ -236,7 +378,7 @@ export default function ProfilePage() {
                       shadow-lg
                     "
                   >
-                    AU
+                    {profileInitials}
                   </motion.div>
 
                   <button

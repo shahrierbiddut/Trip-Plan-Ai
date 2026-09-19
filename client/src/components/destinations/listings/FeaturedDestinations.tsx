@@ -33,7 +33,7 @@ export default function FeaturedDestinations({ destinations }: FeaturedDestinati
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {featured.map((destination, index) => (
           <DestinationCard 
-            key={destination.id} 
+            key={destination.slug || `featured-${index}`} 
             destination={destination} 
             featured={true}
             featuredType={index === 0 ? "Trending" : index === 1 ? "Popular" : "New"} 

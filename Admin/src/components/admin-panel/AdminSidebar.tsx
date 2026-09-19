@@ -72,11 +72,6 @@ const mainMenuItems = [
     href: "/admin-panel/analytics",
     icon: BarChart3,
   },
-  {
-    name: "Moderation",
-    href: "/admin-panel/moderation",
-    icon: ShieldCheck,
-  },
 ];
 
 export default function AdminSidebar({
@@ -465,38 +460,7 @@ export default function AdminSidebar({
                 <span>Profile</span>
               </Link>
 
-              {/* Settings */}
-              <Link
-                href="/admin-panel/settings"
-                onClick={onClose}
-                className={`
-                  group
-                  flex items-center gap-3
-                  rounded-[10px]
-                  px-3 py-[9px]
-                  text-[13px]
-                  font-medium
-                  transition-all
-                  duration-200
-                  ${
-                    isActive("/admin-panel/settings")
-                      ? "bg-[#16A875] text-white"
-                      : "text-[#D0E2DD] hover:bg-[#0A6254] hover:text-white"
-                  }
-                `}
-              >
-                <Settings
-                  size={18}
-                  strokeWidth={1.8}
-                  className={
-                    isActive("/admin-panel/settings")
-                      ? "text-white"
-                      : "text-[#A9C9C0] group-hover:text-white"
-                  }
-                />
-
-                <span>Settings</span>
-              </Link>
+              
 
               {/* Logout */}
               <Link

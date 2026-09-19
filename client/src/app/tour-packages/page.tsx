@@ -364,9 +364,9 @@ function FeaturedPackagesSlider({
           "
         >
           {packages.map(
-            (tour) => (
+            (tour, index) => (
               <FeaturedPackageCard
-                key={tour.id}
+                key={tour.slug || `featured-${index}`}
                 tour={tour}
               />
             )
@@ -387,9 +387,9 @@ function FeaturedPackagesSlider({
           "
         >
           {packages.map(
-            (tour) => (
+            (tour, index) => (
               <FeaturedPackageCard
-                key={`duplicate-${tour.id}`}
+                key={`duplicate-${tour.slug || index}`}
                 tour={tour}
                 duplicate
               />
@@ -603,7 +603,7 @@ export default function TourPackagesPage() {
             {upcomingPackages.map(
               (tour, index) => (
                 <motion.div
-                  key={tour.id}
+                  key={tour.slug || index}
                   initial={{
                     opacity: 0,
                     y: 35,

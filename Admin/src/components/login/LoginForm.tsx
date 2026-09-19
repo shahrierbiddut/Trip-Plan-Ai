@@ -17,6 +17,11 @@ import toast from "react-hot-toast";
 import { showLoginToast } from "@/components/TripPlanToast";
 import { FcGoogle } from "react-icons/fc";
 
+const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000").replace(
+  /\/+$/,
+  "",
+);
+
 interface LoginFormData {
   email: string;
   password: string;
@@ -76,8 +81,31 @@ export default function LoginForm({
         return;
       }
 
-      showLoginToast(data.user.name ?? "Traveler");
-      router.replace("/");
+      const userResponse = await fetch(
+        `${API_URL}/api/users/${encodeURIComponent(data.user.id)}`,
+        {
+          credentials: "include",
+          cache: "no-store",
+        },
+      );
+
+      if (!userResponse.ok) {
+        setErrorMessage("Unable to verify admin access. Please try again.");
+        return;
+      }
+
+      const userResult = await userResponse.json();
+      const role = String(userResult?.data?.role ?? "")
+        .trim()
+        .toLowerCase();
+
+      if (role !== "admin") {
+        setErrorMessage("Admin access only. This account is not an admin.");
+        return;
+      }
+
+      showLoginToast(data.user.name ?? "Admin");
+      router.replace("/admin-panel");
       router.refresh();
     } catch (error) {
       setErrorMessage(
@@ -96,7 +124,7 @@ export default function LoginForm({
     try {
       const { error } = await authClient.signIn.social({
         provider: "google",
-        callbackURL: `${window.location.origin}/`,
+        callbackURL: `${window.location.origin}/admin-panel`,
         errorCallbackURL: `${window.location.origin}/login`,
       });
       if (error) {

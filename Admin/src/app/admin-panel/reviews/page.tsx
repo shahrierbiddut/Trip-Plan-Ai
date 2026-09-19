@@ -44,6 +44,7 @@ interface ApiReview {
   name?: string;
   user?: string;
   email?: string;
+  userEmail?: string;
   destination?: string;
   rating?: number;
   date?: string;
@@ -163,7 +164,7 @@ export default function ReviewsPage() {
         ).replace(/\/+$/, "");
 
         const response = await fetch(
-          `${baseUrl}/api/reviews`
+          `${baseUrl}/api/reviews/admin`
         );
 
         if (!response.ok) {
@@ -198,7 +199,10 @@ export default function ReviewsPage() {
 
                   user: userName,
 
-                  email: item.email || "",
+                  email:
+                    item.email ||
+                    item.userEmail ||
+                    "",
 
                   destination:
                     item.destination ||
@@ -224,7 +228,8 @@ export default function ReviewsPage() {
                     "No comment provided.",
 
                   status:
-                    item.status === "Published"
+                    item.status === "Published" ||
+                    item.status === "Approved"
                       ? "Published"
                       : "Pending",
 

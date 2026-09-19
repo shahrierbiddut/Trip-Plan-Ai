@@ -20,7 +20,11 @@ interface ApiStory {
   title?: string;
   authorName?: string;
   location?: string;
-  image?: string;
+  image?:
+    | string
+    | {
+        dataUrl?: string;
+      };
   content?: string;
   status?: string;
 }
@@ -42,32 +46,51 @@ export default function AdminStoriesPage() {
     try {
       setLoading(true);
 
-      const response = await fetch(`${API_URL}/api/stories`);
+      const storyStatuses: StoryStatus[] = [
+        "Pending",
+        "Approved",
+        "Rejected",
+      ];
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch stories: ${response.status}`);
+      const responses = await Promise.all(
+        storyStatuses.map((status) =>
+          fetch(`${API_URL}/api/stories?status=${encodeURIComponent(status)}`, {
+            cache: "no-store",
+          })
+        )
+      );
+
+      const failedResponse = responses.find((response) => !response.ok);
+
+      if (failedResponse) {
+        throw new Error(`Failed to fetch stories: ${failedResponse.status}`);
       }
 
-      const data: ApiResponse = await response.json();
+      const results: ApiResponse[] = await Promise.all(
+        responses.map((response) => response.json())
+      );
 
-      if (data.success && Array.isArray(data.data)) {
-        const formattedStories: Story[] = data.data.map((story) => ({
-          _id: story._id,
-          title: story.title || "Untitled Story",
-          authorName: story.authorName || "Anonymous",
-          location: story.location || "Unknown Location",
-          image: story.image || "/placeholder.jpg",
-          content: story.content || "No content available.",
-          status:
-            story.status === "Approved" || story.status === "Rejected"
-              ? story.status
-              : "Pending",
-        }));
+      const apiStories = results.flatMap((result) =>
+        result.success && Array.isArray(result.data) ? result.data : []
+      );
 
-        setStories(formattedStories);
-      } else {
-        setStories([]);
-      }
+      const formattedStories: Story[] = apiStories.map((story) => ({
+        _id: story._id,
+        title: story.title || "Untitled Story",
+        authorName: story.authorName || "Anonymous",
+        location: story.location || "Unknown Location",
+        image:
+          typeof story.image === "string"
+            ? story.image
+            : story.image?.dataUrl || "/placeholder.jpg",
+        content: story.content || "No content available.",
+        status:
+          story.status === "Approved" || story.status === "Rejected"
+            ? story.status
+            : "Pending",
+      }));
+
+      setStories(formattedStories);
     } catch (error) {
       console.error("Failed to fetch stories:", error);
       setStories([]);
@@ -199,7 +222,7 @@ export default function AdminStoriesPage() {
                         handleUpdateStatus(story._id, "Approved")
                       }
                     >
-                      Approve
+                      Publish
                     </Button>
                   )}
 
@@ -211,7 +234,7 @@ export default function AdminStoriesPage() {
                         handleUpdateStatus(story._id, "Rejected")
                       }
                     >
-                      Reject
+                      Unpublish
                     </Button>
                   )}
 
