@@ -66,7 +66,22 @@ export default function PlanTripPage() {
 
   useEffect(() => {
     fetchDestinations().then(res => {
-      if (Array.isArray(res)) setDestinationsData(res);
+      if (Array.isArray(res)) {
+        setDestinationsData(res);
+        
+        // Auto-select destination if passed in URL
+        const params = new URLSearchParams(window.location.search);
+        const searchDestination = params.get("destination");
+        if (searchDestination) {
+          const matchedDest = res.find(
+            d => d.name.toLowerCase() === searchDestination.toLowerCase() || 
+                 d.slug.toLowerCase() === searchDestination.toLowerCase()
+          );
+          if (matchedDest) {
+            setFormState(prev => ({ ...prev, destinationSlug: matchedDest.slug }));
+          }
+        }
+      }
     });
 
     const tripId = new URLSearchParams(window.location.search).get("tripId");
