@@ -265,7 +265,7 @@ export default function Footer() {
         </motion.div>
       </motion.div>
 
-      <div className="border-t border-white/5 bg-black/10 py-5 font-sans">
+      <div className="border-t border-white/5 bg-black/10 pt-5 pb-[100px] sm:py-5 font-sans">
         <div className="mx-auto flex max-w-[1920px] flex-col items-center justify-between gap-3 px-4 text-center text-[11px] tracking-wide text-white/45 sm:flex-row sm:px-8 sm:text-left md:px-12 lg:px-16 xl:px-24">
           <p>© 2026 TRIP PLAN AI. All rights reserved.</p>
           <p className="font-serif italic">Plan Smarter. Travel Better.</p>
