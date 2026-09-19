@@ -1334,7 +1334,7 @@ function ReviewsPickedForYouCard({ data }: { data: any }) {
         {/* Recommendation list */}
 
         <div className="mt-4 space-y-1">
-          {data.recommendations.map((recommendation, index) => (
+          {data.recommendations.map((recommendation: any, index: number) => (
             <RecommendationItem
               key={recommendation.id}
               recommendation={recommendation}
