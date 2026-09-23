@@ -3,7 +3,7 @@
 import Image from "next/image";
 import DestinationSearch from '@/components/destinations/listings/DestinationSearch';
 
-export default function DestinationHero() {
+export default function DestinationHero({ onSearch }: { onSearch: (query: string) => void }) {
   return (
     <section className="relative w-full h-[550px] lg:h-[600px] flex items-center justify-center pt-20 pb-10 overflow-hidden">
       {/* Background Image (User uploaded winding road) */}
@@ -38,7 +38,7 @@ export default function DestinationHero() {
         </p>
 
         {/* Search Module */}
-        <DestinationSearch />
+        <DestinationSearch onSearch={onSearch} />
       </div>
     </section>
   );

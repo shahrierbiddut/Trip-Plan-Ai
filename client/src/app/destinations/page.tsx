@@ -19,6 +19,12 @@ function DestinationsPage() {
   const [destinationsData, setDestinationsData] = useState<DestinationData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const visibleDestinations = destinationsData.filter((destination) =>
+    `${destination.name} ${destination.region ?? ""}`
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
+  );
 
   useEffect(() => {
     const loadDestinations = async () => {
@@ -44,7 +50,7 @@ function DestinationsPage() {
   return (
     <div className="bg-[#F7F7F2] min-h-screen">
       {/* 01. Hero Section & Search */}
-      <DestinationHero />
+      <DestinationHero onSearch={setSearchQuery} />
 
       {/* 02. AI Recommendation Banner */}
       <AIRecommendationBanner />
@@ -63,7 +69,7 @@ function DestinationsPage() {
           <>
             {/* 03. Destination Toolbar */}
             <DestinationToolbar
-              resultCount={destinationsData.length}
+              resultCount={visibleDestinations.length}
               viewMode={viewMode}
               setViewMode={setViewMode}
               onOpenMobileFilters={() => setIsMobileFiltersOpen(true)}
@@ -79,13 +85,13 @@ function DestinationsPage() {
               {/* 05. Main Destination Listing */}
               <div className="flex-1 min-w-0">
                 {/* Featured Destinations */}
-                <FeaturedDestinations destinations={destinationsData} />
+                <FeaturedDestinations destinations={visibleDestinations} />
 
                 {/* All Destinations Grid/List/Map */}
-                <AllDestinations destinations={destinationsData} viewMode={viewMode} />
+                <AllDestinations destinations={visibleDestinations} viewMode={viewMode} />
 
                 {/* Trending Destinations */}
-                <TrendingDestinations destinations={destinationsData} />
+                <TrendingDestinations destinations={visibleDestinations} />
 
                 {/* AI Review Intelligence */}
                 <ReviewIntelligence />

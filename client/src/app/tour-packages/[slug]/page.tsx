@@ -248,7 +248,7 @@ export default async function TourPackageDetailsPage({
               BOOKING CARD
           ==================================================== */}
 
-          <aside>
+          <aside className="relative z-[100]">
             <div className="sticky top-24 rounded-[28px] bg-[#173d32] p-6 text-white shadow-xl">
               {/* PRICE LABEL */}
 

@@ -16,6 +16,7 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
 import { useSession } from "@/lib/auth-client";
 
@@ -50,7 +51,6 @@ export default function PackageBooking({
   const router = useRouter();
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
 
   const [loading, setLoading] =
     useState(false);
@@ -170,21 +170,14 @@ export default function PackageBooking({
         );
       }
 
-      /* ========================================================
-         SUCCESS HANDLER (No Payment System Yet)
-      ======================================================== */
+      const bookingId = data.data?._id;
+      if (!bookingId) {
+        throw new Error("Booking was created, but the checkout link is unavailable. Check My Bookings.");
+      }
 
-      setIsSuccess(true);
-      toast.success("Booking Request Submitted Successfully!");
-      
-      // Delay slightly to allow the toast to render and success animation to play before navigating
-      setTimeout(() => {
-        setForm({ name: "", email: "", phone: "", travelDate: "", travellers: 1, note: "" });
-        setOpen(false);
-        setIsSuccess(false);
-        setLoading(false);
-        router.push("/dashboard/my-bookings");
-      }, 2500);
+      toast.success("Booking created. Continue to payment.");
+      setOpen(false);
+      router.push(`/dashboard/checkout/${bookingId}`);
       
     } catch (error) {
       console.error(error);
@@ -208,6 +201,7 @@ export default function PackageBooking({
         type="button"
         onClick={() => {
           if (!session?.user) {
+            toast.error("Please log in to request this package.");
             router.push(`/login?redirect=/tour-packages/${packageSlug}`);
             return;
           }
@@ -219,8 +213,12 @@ export default function PackageBooking({
           setOpen(true);
         }}
         className="
+          pointer-events-auto
+          relative
+          z-40
           mt-7
           w-full
+          cursor-pointer
           rounded-full
           bg-[#f1bf62]
           px-5
@@ -242,12 +240,12 @@ export default function PackageBooking({
           BOOKING MODAL
       ======================================================== */}
 
-      {open && (
+      {open && typeof document !== "undefined" && createPortal(
         <div
           className="
             fixed
             inset-0
-            z-[200]
+            z-[1100]
             flex
             items-center
             justify-center
@@ -273,15 +271,6 @@ export default function PackageBooking({
             {/* ==================================================
                 SUCCESS OVERLAY
             ================================================== */}
-            {isSuccess && (
-              <div className="absolute inset-0 z-50 bg-[#073D31] flex flex-col items-center justify-center text-center px-6 animate-in fade-in duration-500">
-                <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mb-6">
-                  <CheckCircle2 className="w-14 h-14 text-white" />
-                </div>
-                <h2 className="text-3xl font-serif font-bold text-white mb-2">Booking Confirmed!</h2>
-                <p className="text-emerald-100 text-lg">Taking you to payment in a moment...</p>
-              </div>
-            )}
 
             {/* ==================================================
                 CLOSE BUTTON
@@ -893,7 +882,8 @@ export default function PackageBooking({
               </aside>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

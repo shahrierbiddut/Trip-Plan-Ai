@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Search, MapPin } from "lucide-react";
 
 
-export default function DestinationSearch() {
+export default function DestinationSearch({ onSearch }: { onSearch: (query: string) => void }) {
   const [query, setQuery] = useState("");
 
   const popularSearches = [
@@ -19,12 +19,11 @@ export default function DestinationSearch() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Search implementation would go here (e.g. updating URL params or context)
-    console.log("Searching for:", query);
+    onSearch(query.trim());
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto mt-8">
+    <div id="destination-search" className="w-full max-w-3xl mx-auto mt-8 scroll-mt-28">
       <form
         onSubmit={handleSearch}
         className="flex items-center bg-white rounded-full p-2 relative z-10 w-[90%] md:w-[80%] mx-auto"

@@ -13,11 +13,11 @@ import {
   Search,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { signOut, useSession } from "@/lib/auth-client";
 import { Avatar } from "@heroui/react";
 import { showLogoutToast } from "@/components/TripPlanToast";
-import { getUserSession } from "@/lib/core/session";
 
 /* ============================================================
    TYPES
@@ -130,6 +130,21 @@ export default function Navbar() {
 
   const userMenuRef =
     useRef<HTMLDivElement | null>(null);
+  const userMenuPanelRef = useRef<HTMLDivElement | null>(null);
+  const [userMenuPosition, setUserMenuPosition] = useState<{
+    top: number;
+    right: number;
+  } | null>(null);
+
+  const updateUserMenuPosition = useCallback(() => {
+    const rect = userMenuRef.current?.getBoundingClientRect();
+    if (rect) {
+      setUserMenuPosition({
+        top: rect.bottom + 8,
+        right: Math.max(12, window.innerWidth - rect.right),
+      });
+    }
+  }, []);
 
   /* ============================================================
      ACTIVE ROUTES
@@ -189,9 +204,8 @@ export default function Navbar() {
     ) => {
       if (
         userMenuRef.current &&
-        !userMenuRef.current.contains(
-          event.target as Node,
-        )
+        !userMenuRef.current.contains(event.target as Node) &&
+        !userMenuPanelRef.current?.contains(event.target as Node)
       ) {
         setUserMenuOpen(false);
       }
@@ -201,17 +215,26 @@ export default function Navbar() {
       "mousedown",
       handlePointerDown,
     );
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setUserMenuOpen(false);
+    };
+    window.addEventListener("resize", updateUserMenuPosition);
+    window.addEventListener("scroll", updateUserMenuPosition, true);
+    document.addEventListener("keydown", handleEscape);
 
     return () => {
       document.removeEventListener(
         "mousedown",
         handlePointerDown,
       );
+      window.removeEventListener("resize", updateUserMenuPosition);
+      window.removeEventListener("scroll", updateUserMenuPosition, true);
+      document.removeEventListener("keydown", handleEscape);
     };
-  }, [userMenuOpen]);
+  }, [userMenuOpen, updateUserMenuPosition]);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 w-full bg-transparent px-3 pt-2 font-sans antialiased sm:px-5 sm:pt-3">
+    <header className="pointer-events-none fixed inset-x-0 top-0 z-[1000] w-full bg-transparent px-3 pt-2 font-sans antialiased sm:px-5 sm:pt-3">
       {/* ========================================================
           MAIN NAVBAR
       ======================================================== */}
@@ -231,7 +254,7 @@ export default function Navbar() {
           duration: 0.65,
           ease: [0.22, 1, 0.36, 1],
         }}
-        className="mx-auto h-[64px] w-full max-w-[1420px] rounded-[22px] border border-white/65 bg-white/[0.74] shadow-[0_14px_40px_rgba(7,26,22,0.14),0_3px_10px_rgba(7,26,22,0.06),inset_0_1px_0_rgba(255,255,255,0.88)] backdrop-blur-2xl sm:rounded-full"
+        className="pointer-events-auto mx-auto h-[64px] w-full max-w-[1420px] rounded-[22px] border border-white/65 bg-white/[0.74] shadow-[0_14px_40px_rgba(7,26,22,0.14),0_3px_10px_rgba(7,26,22,0.06),inset_0_1px_0_rgba(255,255,255,0.88)] backdrop-blur-2xl sm:rounded-full"
       >
         <div className="relative mx-auto flex h-full w-full items-center px-3 sm:px-5 lg:px-7">
           {/* ====================================================
@@ -274,7 +297,7 @@ export default function Navbar() {
               This is absolutely centered in the navbar.
           ==================================================== */}
 
-          <div className="absolute left-1/2 top-0 hidden h-full -translate-x-1/2 items-center whitespace-nowrap lg:flex">
+          <div className="absolute left-1/2 top-0 z-10 hidden h-full -translate-x-1/2 items-center whitespace-nowrap lg:flex">
             {/* ==================================================
                 EXPLORE
             ================================================== */}
@@ -524,11 +547,11 @@ export default function Navbar() {
               These stay on the right.
           ==================================================== */}
 
-          <div className="ml-auto hidden items-center gap-2 lg:flex">
+          <div className="relative z-30 ml-auto hidden items-center gap-2 lg:flex">
             {/* Search */}
 
             <Link
-              href="/search"
+              href="/destinations#destination-search"
               aria-label="Search"
               className={`
                 flex h-[40px] w-[40px]
@@ -583,21 +606,20 @@ export default function Navbar() {
             ) : user ? (
               <div
                 ref={userMenuRef}
-                className="relative ml-3"
+                className="relative z-40 ml-3"
               >
                 <button
                   type="button"
                   aria-label="Open user menu"
+                  aria-haspopup="menu"
                   aria-expanded={
                     userMenuOpen
                   }
-                  onClick={() =>
-                    setUserMenuOpen(
-                      (previous) =>
-                        !previous,
-                    )
-                  }
-                  className="flex h-[44px] max-w-[210px] items-center gap-2 rounded-full border border-[#C8D9D2] bg-white/70 py-1 pl-1 pr-3 text-left shadow-[0_5px_16px_rgba(7,38,30,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] transition-all duration-200 hover:border-[#087F5B]/45 hover:bg-[#F5FAF8]"
+                  onClick={() => {
+                    updateUserMenuPosition();
+                    setUserMenuOpen((previous) => !previous);
+                  }}
+                  className="relative z-40 flex h-[44px] max-w-[210px] cursor-pointer items-center gap-2 rounded-full border border-[#C8D9D2] bg-white/70 py-1 pl-1 pr-3 text-left shadow-[0_5px_16px_rgba(7,38,30,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] transition-all duration-200 hover:border-[#087F5B]/45 hover:bg-[#F5FAF8]"
                 >
                   <Avatar className="h-9 w-9 shrink-0">
                     <Avatar.Image
@@ -628,9 +650,74 @@ export default function Navbar() {
                   />
                 </button>
 
+
+              </div>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="ml-4 flex h-[38px] items-center justify-center rounded-full border border-[#B9CEC5] bg-white/55 px-[17px] text-[14px] font-semibold tracking-[-0.01em] text-[#263D34] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] transition-all duration-200 hover:border-[#087F5B]/55 hover:bg-[#EDF7F3] hover:text-[#087F5B]"
+                >
+                  Login
+                </Link>
+
+                <Link
+                  href="/signup"
+                  className="ml-[9px] flex h-[38px] items-center justify-center rounded-full border border-[#FFD078]/55 bg-gradient-to-br from-[#FFC65A] via-[#F4A934] to-[#D9861F] px-[18px] text-[14px] font-semibold tracking-[-0.01em] text-[#17332A] shadow-[0_8px_22px_rgba(217,134,31,0.28),inset_0_1px_0_rgba(255,255,255,0.45)] transition-all duration-200 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-[0_11px_28px_rgba(217,134,31,0.36)]"
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
+          </div>
+
+          {/* ====================================================
+              MOBILE ACTIONS
+          ==================================================== */}
+
+          <div className="ml-auto flex items-center gap-1 lg:hidden">
+            <Link
+              href="/destinations#destination-search"
+              aria-label="Search"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-[#385047] transition-colors hover:bg-[#087F5B]/10 hover:text-[#087F5B]"
+            >
+              <Search
+                size={20}
+                strokeWidth={1.8}
+              />
+            </Link>
+
+            <button
+              type="button"
+              aria-label={
+                mobileMenuOpen
+                  ? "Close menu"
+                  : "Open menu"
+              }
+              onClick={() =>
+                setMobileMenuOpen(
+                  (prev) => !prev,
+                )
+              }
+              className="flex h-9 w-9 items-center justify-center rounded-full text-[#385047] transition-colors hover:bg-[#087F5B]/10 hover:text-[#087F5B]"
+            >
+              {mobileMenuOpen ? (
+                <X size={21} />
+              ) : (
+                <Menu size={21} />
+              )}
+            </button>
+          </div>
+        </div>
+      </motion.nav>
+
+      {user && userMenuPosition && typeof document !== "undefined" &&
+        createPortal(
                 <AnimatePresence>
                   {userMenuOpen && (
                     <motion.div
+                      ref={userMenuPanelRef}
+                      style={{ top: userMenuPosition.top, right: userMenuPosition.right }}
                       initial={{
                         opacity: 0,
                         y: -8,
@@ -655,7 +742,7 @@ export default function Navbar() {
                           1,
                         ],
                       }}
-                      className="absolute right-0 top-[52px] z-[120] w-[300px] overflow-hidden rounded-[20px] border border-[#E3EDE7] bg-[#F7F9F4]/95 p-3 shadow-[0_20px_50px_rgba(7,38,30,0.16),inset_0_1px_0_rgba(255,255,255,0.92)] backdrop-blur-2xl"
+                      className="fixed z-[9999] w-[300px] overflow-hidden rounded-[20px] border border-[#E3EDE7] bg-[#F7F9F4]/95 p-3 shadow-[0_20px_50px_rgba(7,38,30,0.16),inset_0_1px_0_rgba(255,255,255,0.92)] backdrop-blur-2xl"
                     >
                       <div className="flex items-center gap-3 rounded-[15px] bg-[#F3F8F4] p-3">
                         <Avatar className="h-12 w-12 shrink-0 border border-[#DDEAE1] bg-gradient-to-br from-[#EEF7F1] via-[#F8F3E9] to-[#F0D39A] text-[#24463B] shadow-sm">
@@ -725,70 +812,14 @@ export default function Navbar() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="ml-4 flex h-[38px] items-center justify-center rounded-full border border-[#B9CEC5] bg-white/55 px-[17px] text-[14px] font-semibold tracking-[-0.01em] text-[#263D34] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] transition-all duration-200 hover:border-[#087F5B]/55 hover:bg-[#EDF7F3] hover:text-[#087F5B]"
-                >
-                  Login
-                </Link>
-
-                <Link
-                  href="/signup"
-                  className="ml-[9px] flex h-[38px] items-center justify-center rounded-full border border-[#FFD078]/55 bg-gradient-to-br from-[#FFC65A] via-[#F4A934] to-[#D9861F] px-[18px] text-[14px] font-semibold tracking-[-0.01em] text-[#17332A] shadow-[0_8px_22px_rgba(217,134,31,0.28),inset_0_1px_0_rgba(255,255,255,0.45)] transition-all duration-200 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-[0_11px_28px_rgba(217,134,31,0.36)]"
-                >
-                  Get Started
-                </Link>
-              </>
-            )}
-          </div>
-
-          {/* ====================================================
-              MOBILE ACTIONS
-          ==================================================== */}
-
-          <div className="ml-auto flex items-center gap-1 lg:hidden">
-            <Link
-              href="/search"
-              aria-label="Search"
-              className="flex h-9 w-9 items-center justify-center rounded-full text-[#385047] transition-colors hover:bg-[#087F5B]/10 hover:text-[#087F5B]"
-            >
-              <Search
-                size={20}
-                strokeWidth={1.8}
-              />
-            </Link>
-
-            <button
-              type="button"
-              aria-label={
-                mobileMenuOpen
-                  ? "Close menu"
-                  : "Open menu"
-              }
-              onClick={() =>
-                setMobileMenuOpen(
-                  (prev) => !prev,
-                )
-              }
-              className="flex h-9 w-9 items-center justify-center rounded-full text-[#385047] transition-colors hover:bg-[#087F5B]/10 hover:text-[#087F5B]"
-            >
-              {mobileMenuOpen ? (
-                <X size={21} />
-              ) : (
-                <Menu size={21} />
-              )}
-            </button>
-          </div>
-        </div>
-      </motion.nav>
+          , document.body
+        )}
 
       {/* ========================================================
           MOBILE MENU
       ======================================================== */}
 
+      <div className="pointer-events-auto">
       <AnimatePresence>
         {mobileMenuOpen && (
           <MobileMenu
@@ -799,6 +830,7 @@ export default function Navbar() {
           />
         )}
       </AnimatePresence>
+      </div>
     </header>
   );
 }
