@@ -63,6 +63,12 @@ export default function TravelChatWidget() {
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
+    const openChat = () => setIsOpen(true);
+    window.addEventListener("tripplan:open-ai-chat", openChat);
+    return () => window.removeEventListener("tripplan:open-ai-chat", openChat);
+  }, []);
+
+  useEffect(() => {
     if (!isOpen) return;
 
     chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });

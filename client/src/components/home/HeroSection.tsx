@@ -1,82 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Button } from "@heroui/react";
 import { motion } from "framer-motion";
-import {
-  CalendarCheck2,
-  Clock3,
-  Gem,
-  MapPin,
-  Search,
-  Sparkles,
-  WalletCards,
-} from "lucide-react";
-
-const popularDestinations = [
-  "Cox's Bazar",
-  "Sajek Valley",
-  "Bandarban",
-  "Saint Martin",
-  "Sylhet",
-];
-
-const aiOptions = [
-  {
-    label: "Smart Itinerary",
-    icon: CalendarCheck2,
-    highlighted: true,
-  },
-  {
-    label: "Budget Optimizer",
-    icon: WalletCards,
-    highlighted: false,
-  },
-  {
-    label: "Best Time",
-    icon: Clock3,
-    highlighted: false,
-  },
-  {
-    label: "Hidden Gems",
-    icon: Gem,
-    highlighted: false,
-  },
-];
+import { Compass, MessageCircle, Sparkles } from "lucide-react";
 
 const revealEase = [0.22, 1, 0.36, 1] as const;
 
 export default function HeroSection() {
-  const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedOptions, setSelectedOptions] = useState<string[]>(
-    aiOptions.map((opt) => opt.label)
-  );
-
-  const toggleOption = (option: string) => {
-    setSelectedOptions((prev) =>
-      prev.includes(option) ? prev.filter((o) => o !== option) : [...prev, option]
-    );
-  };
-
-  const handleExplore = (query = searchQuery) => {
-    if (selectedOptions.length > 0) {
-      const params = new URLSearchParams();
-      if (query) params.set("destination", query);
-      params.set("options", selectedOptions.join(","));
-      router.push(`/plan-trip?${params.toString()}`);
-    } else {
-      if (query) {
-        router.push(`/destinations?search=${encodeURIComponent(query)}`);
-      } else {
-        router.push("/destinations");
-      }
-    }
-  };
-
   return (
     <section className="relative w-full overflow-hidden rounded-b-[24px] bg-[#071A16]">
       {/* HERO BACKGROUND IMAGE */}
@@ -159,126 +90,28 @@ export default function HeroSection() {
               and unforgettable experiences—just for you.
             </motion.p>
 
-            {/* DESTINATION SEARCH CARD */}
-
+            {/* HERO ACTIONS */}
             <motion.div
               initial={{ opacity: 0, y: 22, scale: 0.985 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.7, delay: 0.32, ease: revealEase }}
-              className="mx-auto mb-20 mt-7 w-full max-w-[760px] rounded-[22px] border border-white/25 bg-[#071A16]/52 p-2 shadow-[0_18px_55px_rgba(0,0,0,0.30),0_0_30px_rgba(244,185,66,0.08),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-2xl sm:p-2.5"
+              className="mx-auto mb-20 mt-8 flex w-full max-w-[540px] flex-col gap-3 rounded-[22px] border border-white/25 bg-[#071A16]/52 p-3 shadow-[0_18px_55px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-2xl sm:flex-row"
             >
-              <div className="flex w-full items-center gap-2">
-                {/* SEARCH INPUT */}
-
-                <div className="min-w-0 flex-1">
-                  <div className="relative flex h-[48px] w-full items-center rounded-2xl border border-white/20 bg-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-300 focus-within:border-[#F4B942]/55 focus-within:bg-white/[0.10] focus-within:shadow-[0_0_0_3px_rgba(244,185,66,0.10),0_0_24px_rgba(244,185,66,0.10)]">
-                    <Search
-                      size={17}
-                      strokeWidth={2}
-                      aria-hidden="true"
-                      className="pointer-events-none absolute left-3.5 shrink-0 text-[#FFD078]"
-                    />
-
-                    <input
-                      type="search"
-                      name="destination"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleExplore();
-                      }}
-                      aria-label="Search destination"
-                      placeholder="Where do you want to explore?"
-                      className="h-full w-full rounded-2xl bg-transparent py-2 pl-11 pr-12 text-[13px] font-medium tracking-[-0.005em] text-white outline-none placeholder:text-white/62 sm:text-[14px]"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if ("geolocation" in navigator) {
-                          navigator.geolocation.getCurrentPosition(
-                            () => setSearchQuery("Current Location"),
-                            () => console.error("Location access denied")
-                          );
-                        }
-                      }}
-                      aria-label="Use current location"
-                      className="absolute right-2 flex h-8 w-8 items-center justify-center rounded-lg text-white/60 transition-all duration-200 hover:bg-white/10 hover:text-[#FFD078] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F4B942]/40"
-                    >
-                      <MapPin size={16} strokeWidth={2} aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* EXPLORE BUTTON */}
-
-                <Button
-                  onClick={() => handleExplore()}
-                  className="!h-[48px] min-w-[92px] shrink-0 rounded-2xl border border-[#FFD078]/35 bg-gradient-to-br from-[#F6B84C] via-[#ECA23A] to-[#D88928] px-5 text-[12px] font-semibold tracking-[-0.005em] text-[#14211C] shadow-[0_8px_24px_rgba(229,151,43,0.30),inset_0_1px_0_rgba(255,255,255,0.34)] transition-all duration-300 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-[0_12px_30px_rgba(229,151,43,0.38)] sm:text-[13px]"
-                >
-                  Explore
-                </Button>
-              </div>
-
-              {/* POPULAR DESTINATION CHIPS */}
-
-              <div className="mt-2.5 flex flex-wrap items-center justify-center gap-1.5 px-1 pb-0.5">
-                {popularDestinations.map((destination, index) => (
-                  <motion.div
-                    key={destination}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: 0.48 + index * 0.06, ease: revealEase }}
-                  >
-                    <button
-                      onClick={() => handleExplore(destination)}
-                      className="inline-flex rounded-full border border-white/20 bg-white/[0.07] px-2.5 py-1 text-[11px] font-medium tracking-[-0.005em] text-white/82 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-lg transition-all duration-200 hover:-translate-y-0.5 hover:border-[#F4B942]/45 hover:bg-[#F4B942]/12 hover:text-[#FFD078] sm:text-[12px]"
-                    >
-                      {destination}
-                    </button>
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* AI PLANNING OPTIONS */}
-
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.78, ease: revealEase }}
-                className="px-1 pb-1 pt-3"
+              <Link
+                href="/destinations"
+                className="flex min-h-14 flex-1 items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-br from-[#F6B84C] via-[#ECA23A] to-[#D88928] px-5 text-[15px] font-bold text-[#14211C] shadow-[0_8px_24px_rgba(229,151,43,0.30)] transition-all duration-300 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFD078]"
               >
-                <div className="mb-2.5 flex items-center gap-3">
-                  <span className="h-px flex-1 bg-gradient-to-r from-transparent to-white/20" />
-                  <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/55 sm:text-[10px]">
-                    AI planning options
-                  </span>
-                  <span className="h-px flex-1 bg-gradient-to-l from-transparent to-white/20" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {aiOptions.map((option, index) => {
-                    const Icon = option.icon;
-                    const isSelected = selectedOptions.includes(option.label);
-
-                    return (
-                      <motion.button
-                        key={option.label}
-                        onClick={() => toggleOption(option.label)}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: 0.86 + index * 0.06, ease: revealEase }}
-                        className={isSelected ? "flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#F4B942]/65 bg-[#F4B942]/12 px-2.5 text-[#FFD078] shadow-[0_0_22px_rgba(244,185,66,0.13),inset_0_1px_0_rgba(255,255,255,0.08)] cursor-pointer" : "flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/18 bg-white/[0.055] px-2.5 text-white/74 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] cursor-pointer hover:bg-white/10 transition-colors"}
-                      >
-                        <Icon size={15} strokeWidth={1.8} aria-hidden="true" className="shrink-0" />
-                        <span className="text-[10px] font-medium tracking-[-0.005em] sm:text-[11px]">
-                          {option.label}
-                        </span>
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              </motion.div>
+                <Compass size={19} aria-hidden="true" />
+                Destinations
+              </Link>
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new Event("tripplan:open-ai-chat"))}
+                className="flex min-h-14 flex-1 cursor-pointer items-center justify-center gap-2.5 rounded-2xl border border-[#FFD078]/55 bg-white/[0.08] px-5 text-[15px] font-bold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/[0.15] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFD078]"
+              >
+                <MessageCircle size={19} className="text-[#FFD078]" aria-hidden="true" />
+                Ask AI
+              </button>
             </motion.div>
           </div>
         </div>
