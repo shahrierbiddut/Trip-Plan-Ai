@@ -40,7 +40,7 @@ export default function MyBookingsPage() {
   };
 
   const handlePayment = (bookingId: string) => {
-    router.push(`/dashboard/checkout/${bookingId}`);
+    router.push(`/checkout/${bookingId}`);
   };
 
   const handleDownloadReceipt = (booking: any) => {

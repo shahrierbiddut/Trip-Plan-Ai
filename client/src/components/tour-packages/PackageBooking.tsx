@@ -177,7 +177,7 @@ export default function PackageBooking({
 
       toast.success("Booking created. Continue to payment.");
       setOpen(false);
-      router.push(`/dashboard/checkout/${bookingId}`);
+      router.push(`/checkout/${bookingId}`);
       
     } catch (error) {
       console.error(error);
