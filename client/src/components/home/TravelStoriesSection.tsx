@@ -33,7 +33,7 @@ const stories: Story[] = [
     title: "Finding calm between tea gardens and clouds",
     author: "TripPlan Stories",
     image:
-      "https://images.unsplash.com/photo-1599394022918-6c277a4c0049?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1585123388867-3bfe6dd4bdbf?q=80&w=1101&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     cardColor: "#4DE1AE",
     textColor: "#071A3D",
     buttonHover: "#91F0CF",
