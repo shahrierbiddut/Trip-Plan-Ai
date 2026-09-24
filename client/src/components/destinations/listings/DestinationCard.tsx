@@ -19,7 +19,8 @@ export default function DestinationCard({ destination, featured, featuredType }:
 
   const handleBookmarkClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    toggleBookmark(destination);
+    e.stopPropagation();
+    void toggleBookmark(destination);
   };
 
   return (
@@ -48,6 +49,7 @@ export default function DestinationCard({ destination, featured, featuredType }:
 
       {/* Top Right Wishlist */}
       <button
+        type="button"
         className={`absolute top-4 right-4 w-8 h-8 rounded-full backdrop-blur-md border flex items-center justify-center transition-all z-20 ${
           bookmarked 
             ? "bg-[#F4A62A] border-[#F4A62A] text-[#0B2522]" 

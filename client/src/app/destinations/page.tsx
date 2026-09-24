@@ -25,6 +25,9 @@ function DestinationsPage() {
       .toLowerCase()
       .includes(searchQuery.toLowerCase())
   );
+  const featuredDestinations = visibleDestinations.filter((destination) => destination.featured).slice(0, 3);
+  const featuredSlugs = new Set(featuredDestinations.map((destination) => destination.slug));
+  const otherDestinations = visibleDestinations.filter((destination) => !featuredSlugs.has(destination.slug));
 
   useEffect(() => {
     const loadDestinations = async () => {
@@ -88,7 +91,13 @@ function DestinationsPage() {
                 <FeaturedDestinations destinations={visibleDestinations} />
 
                 {/* All Destinations Grid/List/Map */}
-                <AllDestinations destinations={visibleDestinations} viewMode={viewMode} />
+                {(otherDestinations.length > 0 || featuredDestinations.length === 0) && (
+                  <AllDestinations
+                    destinations={otherDestinations}
+                    viewMode={viewMode}
+                    heading={featuredDestinations.length > 0 ? "More Destinations" : "All Destinations"}
+                  />
+                )}
 
                 {/* Trending Destinations */}
                 <TrendingDestinations destinations={visibleDestinations} />

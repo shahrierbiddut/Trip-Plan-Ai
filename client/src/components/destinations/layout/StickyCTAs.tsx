@@ -4,15 +4,18 @@ import { useState, useEffect } from "react";
 import { Sparkles, Heart } from "lucide-react";
 import { Button } from "@heroui/react";
 import Link from "next/link";
+import { useDestinationSave, type SavableDestination } from "@/components/destinations/useDestinationSave";
 
 interface StickyCTAsProps {
   name: string;
   aiMatch: number;
   priceFrom: number;
+  destination: SavableDestination;
 }
 
-export default function StickyCTAs({ name, aiMatch, priceFrom }: StickyCTAsProps) {
+export default function StickyCTAs({ name, aiMatch, priceFrom, destination }: StickyCTAsProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const { saved, saving, toggleSave } = useDestinationSave(destination);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -54,9 +57,12 @@ export default function StickyCTAs({ name, aiMatch, priceFrom }: StickyCTAsProps
             <Button
               isIconOnly
               variant="ghost"
+              onClick={() => void toggleSave()}
+              isDisabled={saving}
+              aria-label={saved ? `Remove ${name} from saved destinations` : `Save ${name}`}
               className="rounded-full text-[#66736D] hover:text-[#17211D] hover:bg-[#F7F7F2]"
             >
-              <Heart className="w-5 h-5" />
+              <Heart className={`w-5 h-5 ${saved ? "fill-current" : ""}`} />
             </Button>
             <Link href="/plan-trip">
               <Button
@@ -84,9 +90,12 @@ export default function StickyCTAs({ name, aiMatch, priceFrom }: StickyCTAsProps
              <Button
                isIconOnly
                variant="outline"
+               onClick={() => void toggleSave()}
+               isDisabled={saving}
+               aria-label={saved ? `Remove ${name} from saved destinations` : `Save ${name}`}
                className="border-[#E2E7E3] rounded-lg text-[#17211D]"
              >
-               <Heart className="w-5 h-5" />
+               <Heart className={`w-5 h-5 ${saved ? "fill-current" : ""}`} />
              </Button>
              <Link href="/plan-trip" className="flex-1 max-w-[120px]">
                <Button

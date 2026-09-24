@@ -20,16 +20,13 @@ import AITravelAssistant from "@/components/destinations/ai/AITravelAssistant";
 import RelatedDestinations from "@/components/destinations/layout/RelatedDestinations";
 import FinalCTA from "@/components/destinations/layout/FinalCTA";
 import StickyCTAs from "@/components/destinations/layout/StickyCTAs";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { fetchDestinationBySlug } from "@/lib/api/destination";
-import { getUserSession } from "@/lib/core/session";
-import { addBookmark } from "@/lib/actions/destinations";
 
 export default async function DestinationDetailsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
   const data = await fetchDestinationBySlug(slug);
-  const user = await getUserSession();
 
   if (!data) {
     return notFound();
@@ -37,45 +34,10 @@ export default async function DestinationDetailsPage({ params }: { params: Promi
     console.log("data fetched from server!")
   }
 
-  const handleBookmark = async () => {
-    'use server'
-
-    if (!user) {
-      redirect('/auth/login');
-    }
-    const { _id, ...restDestination } = data;
-
-    const bookmarkData = {
-      ...restDestination,
-      destinationId: _id,
-      user: user.id
-    }
-
-    console.log("Bookmark Data:", bookmarkData);
-
-    try {
-      const res = await addBookmark(bookmarkData);
-
-      if (res.error) {
-        return { success: false, message: res.message };
-      }
-
-      if (res.insertedId) {
-        return { success: true, message: `${data.name} added to your bookmark!` };
-      }
-
-      return { success: false, message: "Something went wrong!" };
-
-    } catch (error) {
-      console.error(error);
-      return { success: false, message: "Failed to connect to server." };
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#F7F7F2]">
 
-      <DestinationHeroDetails data={data}  handleBookmark={handleBookmark} />
+      <DestinationHeroDetails data={data} />
       <DestinationStatsStrip
         rating={data.rating}
         reviews={data.reviewCount}
@@ -141,11 +103,12 @@ export default async function DestinationDetailsPage({ params }: { params: Promi
 
         <RelatedDestinations data={data.relatedDestinations} />
 
-        <FinalCTA name={data.name} image={data.heroImage} />
+        <FinalCTA name={data.name} image={data.heroImage} destination={data} />
 
       </div>
 
       <StickyCTAs
+        destination={data}
         name={data.name}
         aiMatch={data.aiMatch}
         priceFrom={data.estimatedBudget}

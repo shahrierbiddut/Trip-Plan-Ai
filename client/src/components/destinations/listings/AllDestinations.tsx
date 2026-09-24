@@ -7,9 +7,10 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 interface AllDestinationsProps {
   destinations: DestinationData[];
   viewMode: "grid" | "list" | "map";
+  heading?: string;
 }
 
-export default function AllDestinations({ destinations, viewMode }: AllDestinationsProps) {
+export default function AllDestinations({ destinations, viewMode, heading = "All Destinations" }: AllDestinationsProps) {
   if (destinations.length === 0) {
     return (
       <div className="py-12 text-center bg-[#F7F7F2] rounded-xl border border-[#E2E7E3]">
@@ -27,7 +28,7 @@ export default function AllDestinations({ destinations, viewMode }: AllDestinati
   return (
     <div className="mb-16">
       <h2 className="text-2xl sm:text-[28px] font-serif font-bold text-[#17211D] mb-6">
-        All Destinations
+        {heading}
       </h2>
 
       {viewMode === "grid" && (

@@ -1,10 +1,13 @@
+"use client";
+
 import { Star, MapPin, Sparkles, Heart, Share2, ChevronRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@heroui/react";
 import Image from "next/image";
 import Link from "next/link";
+import { useDestinationSave, type SavableDestination } from "@/components/destinations/useDestinationSave";
 
 interface DestinationHeroProps {
-  data: {
+  data: SavableDestination & {
     name: string;
     country: string;
     subtitle: string;
@@ -15,10 +18,10 @@ interface DestinationHeroProps {
     aiMatch: number;
     tags: string[];
   };
-  handleBookmark: () => Promise<{ success: boolean; message: string }>;
 }
 
-export default function DestinationHeroDetails({ data, handleBookmark }: DestinationHeroProps) {
+export default function DestinationHeroDetails({ data }: DestinationHeroProps) {
+  const { saved, saving, toggleSave } = useDestinationSave(data);
   return (
     <div className="relative w-full h-[85vh] min-h-[650px] flex flex-col justify-end overflow-hidden group">
       {/* Background Image with subtle zoom effect */}
@@ -96,10 +99,12 @@ export default function DestinationHeroDetails({ data, handleBookmark }: Destina
             </Link>
             
             <Button
-            onClick={handleBookmark}
+              onClick={() => void toggleSave()}
+              isDisabled={saving}
+              aria-label={saved ? `Remove ${data.name} from saved destinations` : `Save ${data.name}`}
               className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 font-bold px-8 py-7 rounded-full transition-all duration-300 hover:scale-105 shadow-xl"
             >
-              <Heart className="w-5 h-5 mr-2" /> Save
+              <Heart className={`w-5 h-5 mr-2 ${saved ? "fill-current" : ""}`} /> {saving ? "Saving…" : saved ? "Saved" : "Save"}
             </Button>
           </div>
         </div>

@@ -1,14 +1,19 @@
+"use client";
+
 import { Sparkles, Heart } from "lucide-react";
 import { Button } from "@heroui/react";
 import Link from "next/link";
 import Image from "next/image";
+import { useDestinationSave, type SavableDestination } from "@/components/destinations/useDestinationSave";
 
 interface FinalCTAProps {
   name: string;
   image?: string;
+  destination: SavableDestination;
 }
 
-export default function FinalCTA({ name, image }: FinalCTAProps) {
+export default function FinalCTA({ name, image, destination }: FinalCTAProps) {
+  const { saved, saving, toggleSave } = useDestinationSave(destination);
   return (
     <div className="relative w-full rounded-3xl overflow-hidden mt-16 mb-8 border border-[#E2E7E3] shadow-lg">
       <div className="absolute inset-0 z-0">
@@ -46,9 +51,12 @@ export default function FinalCTA({ name, image }: FinalCTAProps) {
           
           <Button
             variant="outline"
+            onClick={() => void toggleSave()}
+            isDisabled={saving}
+            aria-label={saved ? `Remove ${name} from saved destinations` : `Save ${name}`}
             className="w-full sm:w-auto border-white/30 text-white hover:bg-white/10 font-bold px-8 py-7 rounded-xl backdrop-blur-sm"
           >
-            <Heart className="w-5 h-5 mr-2" /> Save Destination
+            <Heart className={`w-5 h-5 mr-2 ${saved ? "fill-current" : ""}`} /> {saving ? "Saving…" : saved ? "Saved Destination" : "Save Destination"}
           </Button>
         </div>
       </div>

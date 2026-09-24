@@ -12,7 +12,8 @@ function HorizontalSavedCard({ destination }: { destination: any }) {
 
   const handleBookmarkClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    toggleBookmark(destination);
+    e.stopPropagation();
+    void toggleBookmark(destination);
   };
 
   const estimatedBudget = destination.estimatedBudget 
@@ -57,6 +58,7 @@ function HorizontalSavedCard({ destination }: { destination: any }) {
             </div>
             
             <button
+              type="button"
               onClick={handleBookmarkClick}
               className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-sm border ${
                 bookmarked 
@@ -93,7 +95,7 @@ function HorizontalSavedCard({ destination }: { destination: any }) {
 }
 
 export default function SavedDestinationsPage() {
-  const { bookmarks, loading } = useBookmarks();
+  const { bookmarks, loading, error, refreshBookmarks } = useBookmarks();
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredBookmarks = bookmarks.filter((b) => 
@@ -129,6 +131,13 @@ export default function SavedDestinationsPage() {
             <div className="flex flex-col items-center justify-center py-20">
               <div className="w-10 h-10 border-4 border-[#087F5B]/20 border-t-[#087F5B] rounded-full animate-spin" />
               <p className="mt-4 text-gray-500 font-medium">Loading your saved places...</p>
+            </div>
+          ) : error ? (
+            <div role="alert" className="rounded-2xl border border-red-100 bg-white p-10 text-center">
+              <p className="text-gray-700">{error}</p>
+              <button type="button" onClick={() => void refreshBookmarks()} className="mt-4 rounded-xl bg-[#087F5B] px-5 py-2 text-white">
+                Try again
+              </button>
             </div>
           ) : bookmarks.length === 0 ? (
             // Empty State
